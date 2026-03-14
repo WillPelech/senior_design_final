@@ -1,0 +1,25 @@
+# =============================================================================
+# requirements.txt  –  AI Valet Robot
+# =============================================================================
+# Install on the Raspberry Pi 4B with:
+#   pip3 install -r requirements.txt
+#
+# picamera2 and RPi.GPIO ship pre-installed on Raspberry Pi OS (Bookworm).
+# If they are missing: sudo apt install python3-picamera2 python3-rpi.gpio
+# =============================================================================
+
+# Computer vision & ArUco detection
+opencv-contrib-python>=4.8.0    # includes cv2.aruco module (use contrib, not base)
+numpy>=1.24.0
+
+# Adafruit Motor HAT
+adafruit-circuitpython-motorkit>=1.6.0
+adafruit-blinka>=8.0.0           # CircuitPython compatibility layer for Pi
+
+# picamera2 – usually installed via apt, but listed here for completeness
+# Uncomment if not pre-installed:
+# picamera2>=0.3.12
+
+# RPi.GPIO – usually pre-installed on Pi OS
+# Uncomment if not pre-installed:
+# RPi.GPIO>=0.7.1
