@@ -32,6 +32,9 @@ CAMERA_FPS = 30
 # USB webcam device index (used when picamera2 is unavailable). 0 = first USB cam.
 USB_CAMERA_INDEX = 0
 
+# Force USB camera even if picamera2 is installed (use when Pi camera is broken).
+FORCE_USB_CAMERA = True
+
 # Camera horizontal field of view in degrees (Pi Camera Module 3 wide = 102°,
 # standard module 2 = 62°). Used only for reference / future FOV math.
 CAMERA_FOV_H_DEG = 62.0

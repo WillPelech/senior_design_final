@@ -120,7 +120,7 @@ class CameraStream:
     # ------------------------------------------------------------------
 
     def _capture_loop(self) -> None:
-        if _PICAMERA_AVAILABLE:
+        if _PICAMERA_AVAILABLE and not config.FORCE_USB_CAMERA:
             self._capture_loop_real()
         elif _CV2_AVAILABLE:
             self._capture_loop_usb()
