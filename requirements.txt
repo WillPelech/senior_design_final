@@ -9,11 +9,8 @@
 # =============================================================================
 
 # Computer vision
-# On Raspberry Pi, install via apt to avoid system library conflicts:
+# Install via apt on Raspberry Pi (NOT pip — causes library conflicts):
 #   sudo apt install -y python3-opencv python3-numpy
-# On non-Pi (dev machines), install via pip:
-numpy>=1.24.0
-opencv-contrib-python>=4.8.0
 
 
 # Adafruit Motor HAT
