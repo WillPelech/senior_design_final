@@ -48,6 +48,22 @@ cv2.destroyAllWindows()
 "
 ```
 
+## Test motor 1
+
+```bash
+python3 -c "
+import board
+from adafruit_motorkit import MotorKit
+kit = MotorKit(i2c=board.I2C())
+print('HAT connected')
+kit.motor1.throttle = 0.5
+import time
+time.sleep(2)
+kit.motor1.throttle = 0
+print('Done')
+"
+```
+
 ## Check camera hardware
 
 ```bash
