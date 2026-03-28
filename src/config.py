@@ -22,7 +22,7 @@
 # -----------------------------------------------------------------------------
 
 # Set True to skip all motor/servo/GPIO hardware init (camera-only testing)
-STUB_MOTORS = True
+STUB_MOTORS = False
 
 
 # -----------------------------------------------------------------------------
