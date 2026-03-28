@@ -22,7 +22,7 @@
 # -----------------------------------------------------------------------------
 
 # Set True to skip all motor/servo/GPIO hardware init (camera-only testing)
-STUB_MOTORS = False
+STUB_MOTORS = True
 
 
 # -----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ CAMERA_HEIGHT = 480
 CAMERA_FPS = 30
 
 # USB webcam device index (used when picamera2 is unavailable). 0 = first USB cam.
-USB_CAMERA_INDEX = 2
+USB_CAMERA_INDEX = 0
 
 # Force USB camera even if picamera2 is installed (use when Pi camera is broken).
 FORCE_USB_CAMERA = True
