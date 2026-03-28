@@ -89,6 +89,9 @@ class MotorDriver:
     # ------------------------------------------------------------------
 
     def _init_motors(self) -> None:
+        if config.STUB_MOTORS:
+            log.warning("STUB_MOTORS=True – motors disabled for camera testing")
+            return
         if _HAT_AVAILABLE:
             try:
                 self._kit = MotorKit(i2c=board.I2C())
@@ -100,6 +103,8 @@ class MotorDriver:
             log.warning("adafruit_motorkit not installed – motors in STUB mode")
 
     def _init_servo(self) -> None:
+        if config.STUB_MOTORS:
+            return
         if config.SERVO_USE_HAT_CHANNEL:
             # Servo driven through Motor HAT (no GPIO needed)
             log.info("Servo will use Motor HAT channel %d", config.SERVO_HAT_CHANNEL)
