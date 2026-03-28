@@ -54,33 +54,46 @@ CAMERA_DIST_COEFFS = [0.0, 0.0, 0.0, 0.0, 0.0]
 
 
 # -----------------------------------------------------------------------------
-# 2. ARUCO DETECTION
+# 2. COLOR + SHAPE DETECTION
 # -----------------------------------------------------------------------------
 
-# ArUco dictionary to use. 4X4_50 is fast and reliable for short-range work.
-# Options: cv2.aruco.DICT_4X4_50 / DICT_5X5_100 / DICT_6X6_250 etc.
-ARUCO_DICT_NAME = "DICT_4X4_50"
-
-# ID of the marker attached to the toy car.
-# Print this marker and tape it to the car roof.
-ARUCO_CAR_MARKER_ID = 0
-
-# ID of the marker at the home/return position (set to None to disable return).
-ARUCO_HOME_MARKER_ID = 1
-
-# Physical side length of the printed ArUco marker in METERS.
-# Measure the black border edge-to-edge after printing.
-# Larger marker = detectable from farther away.
-ARUCO_MARKER_SIZE_M = 0.05  # 5 cm
-
-# Minimum ArUco corner detection confidence (perimeter filter).
-# Markers whose detected perimeter is smaller than this fraction of the max
-# are discarded. Range 0.0–1.0.
-ARUCO_MIN_PERIMETER_RATE = 0.03
-
-# How many consecutive frames the marker must be missing before the robot
-# considers it truly lost and transitions to SEARCHING.
+# How many consecutive frames a shape must be missing before considered lost
 ARUCO_LOST_FRAME_THRESHOLD = 15
+
+# Minimum contour area in pixels to consider a detection valid (filters noise)
+MIN_SHAPE_AREA = 500
+
+# --- Blue circle (car) ---
+# HSV range for blue. Tune with a color picker if lighting changes.
+BLUE_HSV_LOW  = [100, 80, 50]
+BLUE_HSV_HIGH = [130, 255, 255]
+
+# Minimum circularity score (0=line, 1=perfect circle). Lower = more lenient.
+CIRCLE_CIRCULARITY_MIN = 0.7
+
+# Real-world radius of the blue circle marker in meters (measure your actual marker)
+CAR_REAL_RADIUS_M = 0.05  # 5 cm radius circle
+
+# --- Red square (home/parking spot) ---
+# Red wraps in HSV so two ranges are needed
+RED_HSV_LOW1  = [0,   80,  50]
+RED_HSV_HIGH1 = [10,  255, 255]
+RED_HSV_LOW2  = [170, 80,  50]
+RED_HSV_HIGH2 = [180, 255, 255]
+
+# Aspect ratio range for a valid square (width/height)
+SQUARE_ASPECT_MIN = 0.7
+SQUARE_ASPECT_MAX = 1.3
+
+# Real-world side length of the red square in meters
+HOME_REAL_SIZE_M = 0.10  # 10 cm square
+
+# --- Green triangle (start position) ---
+GREEN_HSV_LOW  = [40,  80,  50]
+GREEN_HSV_HIGH = [80,  255, 255]
+
+# Home marker enabled flag (kept for controller compatibility)
+ARUCO_HOME_MARKER_ID = 1
 
 
 # -----------------------------------------------------------------------------
