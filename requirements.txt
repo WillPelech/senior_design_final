@@ -9,8 +9,11 @@
 # =============================================================================
 
 # Computer vision & ArUco detection
-opencv-contrib-python>=4.8.0    # includes cv2.aruco module (use contrib, not base)
-numpy>=1.24.0
+# On Raspberry Pi, install these via apt instead of pip:
+#   sudo apt install -y python3-opencv python3-numpy
+# opencv-contrib-python and numpy are intentionally excluded here to avoid
+# conflicts with Pi system libraries (libopenblas, libhdf5, libatlas, etc.)
+
 
 # Adafruit Motor HAT
 adafruit-circuitpython-motorkit>=1.6.0
