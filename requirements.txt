@@ -8,11 +8,12 @@
 # If they are missing: sudo apt install python3-picamera2 python3-rpi.gpio
 # =============================================================================
 
-# Computer vision & ArUco detection
-# On Raspberry Pi, install these via apt instead of pip:
+# Computer vision
+# On Raspberry Pi, install via apt to avoid system library conflicts:
 #   sudo apt install -y python3-opencv python3-numpy
-# opencv-contrib-python and numpy are intentionally excluded here to avoid
-# conflicts with Pi system libraries (libopenblas, libhdf5, libatlas, etc.)
+# On non-Pi (dev machines), install via pip:
+numpy>=1.24.0
+opencv-contrib-python>=4.8.0
 
 
 # Adafruit Motor HAT
