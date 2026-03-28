@@ -23,6 +23,12 @@ try:
 except ImportError:
     _PICAMERA_AVAILABLE = False
 
+try:
+    import cv2
+    _CV2_AVAILABLE = True
+except ImportError:
+    _CV2_AVAILABLE = False
+
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -116,6 +122,8 @@ class CameraStream:
     def _capture_loop(self) -> None:
         if _PICAMERA_AVAILABLE:
             self._capture_loop_real()
+        elif _CV2_AVAILABLE:
+            self._capture_loop_usb()
         else:
             self._capture_loop_stub()
 
@@ -155,6 +163,33 @@ class CameraStream:
                 time.sleep(0.1)
 
         cam.stop()
+
+    def _capture_loop_usb(self) -> None:
+        """Capture loop using a USB webcam via OpenCV."""
+        cap = cv2.VideoCapture(config.USB_CAMERA_INDEX)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAMERA_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_HEIGHT)
+        cap.set(cv2.CAP_PROP_FPS, config.CAMERA_FPS)
+
+        if not cap.isOpened():
+            log.error("USB camera (index %d) failed to open – falling back to stub", config.USB_CAMERA_INDEX)
+            self._capture_loop_stub()
+            return
+
+        log.info("USB camera opened at index %d", config.USB_CAMERA_INDEX)
+
+        while self._running:
+            ret, frame = cap.read()
+            if ret:
+                with self._lock:
+                    self._frame = frame
+                    self._frame_time = time.monotonic()
+                    self._frame_count += 1
+            else:
+                log.warning("USB camera read failed")
+                time.sleep(0.1)
+
+        cap.release()
 
     def _capture_loop_stub(self) -> None:
         """
