@@ -139,7 +139,8 @@ def run() -> None:
                 display = det.annotated if det.annotated is not None else frame
                 _overlay_state(display, nav.state, det, tick)
                 cv2.imshow("AI Valet", display)
-                key = cv2.waitKey(1) & 0xFF
+                key = cv2.waitKey(1)
+                key = key & 0xFF if key is not None else -1
 
                 if key in (ord('q'), 27):       # q or ESC
                     log.info("Quit key pressed")
