@@ -260,7 +260,7 @@ SEARCH_BACKUP_SPEED  = 0.25
 # -----------------------------------------------------------------------------
 
 # If no frame is received from the camera for this many seconds, emergency stop.
-SAFETY_CAMERA_TIMEOUT_S = 2.0
+SAFETY_CAMERA_TIMEOUT_S = 10.0
 
 # If the robot has been in APPROACHING for longer than this (seconds) without
 # reaching dock distance, assume something is wrong and stop.
