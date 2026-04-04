@@ -169,7 +169,7 @@ MOTOR_MIN_SPEED = 0.12
 MOTOR_CREEP_SPEED = 0.20
 
 # Speed used when spinning in place during SEARCHING
-MOTOR_SEARCH_SPIN_SPEED = 0.30
+MOTOR_SEARCH_SPIN_SPEED = 0.60
 
 # Speed used when returning home
 MOTOR_RETURN_SPEED = 0.40
