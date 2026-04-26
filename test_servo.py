@@ -1,6 +1,8 @@
 import time
 import pigpio
 
+SERVO_GPIO_1 = 12
+SERVO_GPIO_2 = 13
 PULSE_DOWN_US = 1000
 PULSE_UP_US   = 1800
 
@@ -10,22 +12,23 @@ if not pi.connected:
     raise SystemExit(1)
 
 try:
-    print("Testing GPIO 12 only...")
-    pi.set_servo_pulsewidth(12, PULSE_UP_US)
+    print("Lowering lift (1000 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
     time.sleep(2)
-    pi.set_servo_pulsewidth(12, PULSE_DOWN_US)
-    time.sleep(2)
-    pi.set_servo_pulsewidth(12, 0)
 
-    print("Testing GPIO 13 only...")
-    pi.set_servo_pulsewidth(13, PULSE_UP_US)
+    print("Raising lift (1800 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_UP_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_UP_US)
     time.sleep(2)
-    pi.set_servo_pulsewidth(13, PULSE_DOWN_US)
+
+    print("Lowering lift (1000 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
     time.sleep(2)
-    pi.set_servo_pulsewidth(13, 0)
 
 finally:
-    pi.set_servo_pulsewidth(12, 0)
-    pi.set_servo_pulsewidth(13, 0)
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, 0)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, 0)
     pi.stop()
     print("Done.")
