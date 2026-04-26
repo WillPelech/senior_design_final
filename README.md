@@ -88,8 +88,54 @@ Key controls:
 | Camera | USB webcam (facing DOWN for line following) |
 | Chassis | Adafruit Mini Robot Rover 2WD |
 | Motor Driver | Adafruit Motor HAT (I2C) |
-| Lift Servo | SG90/MG90S — raises platform under car |
+| Lift Servo | FS90 micro servo — raises platform under car |
 | Power | USB-C power bank (Pi) + 6x AA batteries (motors) |
+
+---
+
+## Lift Servo Wiring (2x FS90, in sync)
+
+Two FS90 servos raise/lower the lift platform together.
+Connect through the Motor HAT GPIO passthrough header.
+
+```
+Motor HAT GPIO passthrough (top of HAT)
+
+Pin  2  ──── 5V  ──────┬──── Servo 1 VCC  (red)
+                        └──── Servo 2 VCC  (red)
+
+Pin  6  ──── GND ──────┬──── Servo 1 GND  (brown)
+                        └──── Servo 2 GND  (brown)
+
+Pin 12  ──── GPIO 18 ───── Servo 1 Signal (orange)
+
+Pin 13  ──── GPIO 27 ───── Servo 2 Signal (orange)
+```
+
+| FS90 | Signal Pin | GPIO |
+|------|-----------|------|
+| Servo 1 | Pin 12 | GPIO 18 |
+| Servo 2 | Pin 13 | GPIO 27 |
+
+Both share 5V (Pin 2) and GND (Pin 6).
+
+**Pulse widths (tune in config.py):**
+- `SERVO_PULSE_DOWN_US = 1000` — platform lowered (travel position)
+- `SERVO_PULSE_UP_US = 1800` — platform raised (carrying car)
+
+**Test the lift:**
+```bash
+source .venv/bin/activate
+python3 -c "
+import sys; sys.path.insert(0, '.')
+from src.motors.driver import MotorDriver
+import time
+m = MotorDriver()
+print('Lifting...'); m.lift_up(); time.sleep(2)
+print('Lowering...'); m.lift_down(); time.sleep(1)
+m.cleanup()
+"
+```
 
 ---
 

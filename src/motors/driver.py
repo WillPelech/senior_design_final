@@ -73,8 +73,9 @@ class MotorDriver:
 
     def __init__(self) -> None:
         self._kit = None
-        self._pwm = None             # RPi.GPIO PWM object for servo (if used)
-        self._gripper_closed = False # track current gripper state
+        self._pwm  = None   # lift servo 1 (GPIO 18 / Pin 12)
+        self._pwm2 = None   # lift servo 2 (GPIO 27 / Pin 13)
+        self._gripper_closed = False
 
         self._init_motors()
         self._init_servo()
@@ -106,21 +107,25 @@ class MotorDriver:
         if config.STUB_MOTORS:
             return
         if config.SERVO_USE_HAT_CHANNEL:
-            # Servo driven through Motor HAT (no GPIO needed)
             log.info("Servo will use Motor HAT channel %d", config.SERVO_HAT_CHANNEL)
             return
 
         if _GPIO_AVAILABLE:
             try:
                 GPIO.setmode(GPIO.BCM)
+                # Servo 1 — Pin 12 / GPIO 18
                 GPIO.setup(config.SERVO_GPIO_PIN, GPIO.OUT)
                 self._pwm = GPIO.PWM(config.SERVO_GPIO_PIN, config.SERVO_PWM_FREQ_HZ)
-                # Start with gripper open so it doesn't slam closed on boot
-                self._pwm.start(_us_to_duty(config.SERVO_PULSE_OPEN_US, config.SERVO_PWM_FREQ_HZ))
-                log.info("Servo PWM started on GPIO %d at %d Hz", config.SERVO_GPIO_PIN, config.SERVO_PWM_FREQ_HZ)
+                self._pwm.start(_us_to_duty(config.SERVO_PULSE_DOWN_US, config.SERVO_PWM_FREQ_HZ))
+                # Servo 2 — Pin 13 / GPIO 27
+                GPIO.setup(config.SERVO_GPIO_PIN_2, GPIO.OUT)
+                self._pwm2 = GPIO.PWM(config.SERVO_GPIO_PIN_2, config.SERVO_PWM_FREQ_HZ)
+                self._pwm2.start(_us_to_duty(config.SERVO_PULSE_DOWN_US, config.SERVO_PWM_FREQ_HZ))
+                log.info("Lift servos started on GPIO %d and %d", config.SERVO_GPIO_PIN, config.SERVO_GPIO_PIN_2)
             except Exception as exc:
                 log.error("Servo GPIO init failed: %s – servo in STUB mode", exc)
                 self._pwm = None
+                self._pwm2 = None
         else:
             log.warning("RPi.GPIO not available – servo in STUB mode")
 
@@ -206,13 +211,15 @@ class MotorDriver:
         return self._gripper_closed
 
     def _set_servo_pulse(self, pulse_us: float) -> None:
-        """Send a servo pulse width in microseconds."""
+        """Send pulse to both lift servos in sync."""
         if config.SERVO_USE_HAT_CHANNEL:
             self._set_servo_hat(pulse_us)
         elif self._pwm is not None:
             duty = _us_to_duty(pulse_us, config.SERVO_PWM_FREQ_HZ)
             self._pwm.ChangeDutyCycle(duty)
-            log.debug("Servo GPIO pulse=%.0fus duty=%.2f%%", pulse_us, duty)
+            if self._pwm2 is not None:
+                self._pwm2.ChangeDutyCycle(duty)
+            log.debug("Lift servos pulse=%.0fus duty=%.2f%%", pulse_us, duty)
         else:
             log.debug("STUB servo pulse=%.0fus", pulse_us)
 
@@ -255,6 +262,8 @@ class MotorDriver:
         self.stop()
         if self._pwm is not None:
             self._pwm.stop()
+        if self._pwm2 is not None:
+            self._pwm2.stop()
         if _GPIO_AVAILABLE:
             try:
                 GPIO.cleanup()
