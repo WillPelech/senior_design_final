@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Valet Robot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .subtitle { color: #666; font-size: 0.85rem; margin-bottom: 30px; }
+
+    /* Robot status bar */
+    .robot-status {
+      width: 100%;
+      max-width: 600px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    .status-value { font-size: 1.1rem; font-weight: 600; margin-top: 4px; }
+
+    .state-IDLE     { color: #4ade80; }
+    .state-NAVIGATE { color: #60a5fa; }
+    .state-AT_SPOT  { color: #facc15; }
+    .state-DELIVER  { color: #fb923c; }
+    .state-AT_EXIT  { color: #a78bfa; }
+    .state-RETURN   { color: #60a5fa; }
+    .state-DONE     { color: #4ade80; }
+    .state-ESTOP    { color: #f87171; }
+
+    /* Car cards */
+    .cars { display: flex; gap: 20px; width: 100%; max-width: 600px; margin-bottom: 24px; flex-wrap: wrap; }
+
+    .car-card {
+      flex: 1;
+      min-width: 240px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .car-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .car-status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .badge-waiting           { background: #1f2937; color: #9ca3af; }
+    .badge-ready             { background: #14532d; color: #4ade80; }
+    .badge-being_picked_up   { background: #1e3a5f; color: #60a5fa; }
+    .badge-parked            { background: #3b1e6d; color: #c4b5fd; }
+    .badge-ready_to_retrieve { background: #713f12; color: #fbbf24; }
+
+    .car-buttons { display: flex; flex-direction: column; gap: 8px; }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    .btn-ready    { background: #16a34a; color: white; }
+    .btn-retrieve { background: #7c3aed; color: white; }
+    .btn-estop    { background: #dc2626; color: white; font-size: 1rem; letter-spacing: 1px; }
+
+    .estop-section { width: 100%; max-width: 600px; }
+    .estop-section button { width: 100%; padding: 14px; }
+
+    .log {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: #6b7280;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .log-entry { margin-bottom: 4px; }
+    .log-entry span { color: #4ade80; }
+  </style>
+</head>
+<body>
+
+  <h1>AI VALET ROBOT</h1>
+  <div class="subtitle">Control Panel</div>
+
+  <!-- Robot status -->
+  <div class="robot-status">
+    <div>
+      <div class="status-label">Robot State</div>
+      <div class="status-value" id="robot-state">—</div>
+    </div>
+    <div>
+      <div class="status-label">Mission</div>
+      <div class="status-value" id="mission">—</div>
+    </div>
+  </div>
+
+  <!-- Car cards -->
+  <div class="cars">
+    <!-- Car 1 -->
+    <div class="car-card">
+      <div class="car-title">🚗 Car 1</div>
+      <div class="car-status-badge badge-waiting" id="car1-badge">Waiting</div>
+      <div class="car-buttons">
+        <button class="btn-ready" id="btn-car1-ready" onclick="sendCommand('car1_ready')">
+          Car 1 Ready to Park
+        </button>
+        <button class="btn-retrieve" id="btn-car1-retrieve" onclick="sendCommand('retrieve_car1')" disabled>
+          Retrieve Car 1
+        </button>
+      </div>
+    </div>
+
+    <!-- Car 2 -->
+    <div class="car-card">
+      <div class="car-title">🚗 Car 2</div>
+      <div class="car-status-badge badge-waiting" id="car2-badge">Waiting</div>
+      <div class="car-buttons">
+        <button class="btn-ready" id="btn-car2-ready" onclick="sendCommand('car2_ready')">
+          Car 2 Ready to Park
+        </button>
+        <button class="btn-retrieve" id="btn-car2-retrieve" onclick="sendCommand('retrieve_car2')" disabled>
+          Retrieve Car 2
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Emergency stop -->
+  <div class="estop-section">
+    <button class="btn-estop" onclick="sendCommand('estop')">⚠ EMERGENCY STOP</button>
+  </div>
+
+  <!-- Log -->
+  <div class="log" id="log"></div>
+
+  <script>
+    const STATUS_LABELS = {
+      waiting:           'Waiting',
+      ready:             'Ready to Park',
+      being_picked_up:   'Being Picked Up',
+      parked:            'Parked',
+      ready_to_retrieve: 'Ready to Retrieve',
+    };
+
+    function addLog(msg) {
+      const log = document.getElementById('log');
+      const now = new Date().toLocaleTimeString();
+      const el = document.createElement('div');
+      el.className = 'log-entry';
+      el.innerHTML = `<span>[${now}]</span> ${msg}`;
+      log.prepend(el);
+    }
+
+    function updateCarUI(num, status) {
+      const badge = document.getElementById(`car${num}-badge`);
+      const btnReady    = document.getElementById(`btn-car${num}-ready`);
+      const btnRetrieve = document.getElementById(`btn-car${num}-retrieve`);
+
+      badge.textContent = STATUS_LABELS[status] || status;
+      badge.className = `car-status-badge badge-${status}`;
+
+      btnReady.disabled    = status !== 'waiting';
+      btnRetrieve.disabled = status !== 'parked';
+    }
+
+    async function pollStatus() {
+      try {
+        const res  = await fetch('/api/status');
+        const data = await res.json();
+
+        const stateEl = document.getElementById('robot-state');
+        stateEl.textContent  = data.robot_state;
+        stateEl.className    = `status-value state-${data.robot_state}`;
+        document.getElementById('mission').textContent = data.mission;
+
+        updateCarUI(1, data.car1_status);
+        updateCarUI(2, data.car2_status);
+      } catch (e) {
+        console.error('Status poll failed:', e);
+      }
+    }
+
+    async function sendCommand(cmd) {
+      addLog(`Sending command: ${cmd}`);
+      try {
+        const res = await fetch('/api/command', {
+          method: 'POST',
+          body: JSON.stringify({ command: cmd }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          addLog(`Error: ${data.error}`);
+        } else {
+          addLog(`Command accepted: ${cmd}`);
+        }
+      } catch (e) {
+        addLog(`Failed to send command: ${e}`);
+      }
+    }
+
+    // Poll every second
+    pollStatus();
+    setInterval(pollStatus, 1000);
+  </script>
+</body>
+</html>
