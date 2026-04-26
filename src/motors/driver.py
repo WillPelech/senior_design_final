@@ -140,10 +140,9 @@ class MotorDriver:
         right = _clamp(self._apply_deadband(right))
 
         if _HAT_AVAILABLE and self._kit is not None:
-            # Motor HAT: M1 = left drive, M2 = right drive
-            # Adjust motor indices here if your wiring differs
-            self._kit.motor1.throttle = left
-            self._kit.motor2.throttle = right
+            # Motor HAT: M2 = left drive, M1 = right drive
+            self._kit.motor2.throttle = left
+            self._kit.motor1.throttle = right
         else:
             log.debug("STUB motors | L=%.2f  R=%.2f", left, right)
 

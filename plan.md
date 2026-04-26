@@ -93,15 +93,15 @@ Build an autonomous robot that can:
 ## Phase Breakdown
 
 ### Phase 1 - Hardware Setup
-- [ ] Assemble chassis (motors, wheels, caster)
-- [ ] Choose and wire motor driver (TB6612 or Motor HAT)
-- [ ] Mount Raspberry Pi 4B on top plate
+- [x] Assemble chassis (motors, wheels, caster)
+- [x] Choose and wire motor driver (TB6612 or Motor HAT)
+- [x] Mount Raspberry Pi 4B on top plate
 - [ ] Print and assemble Thingiverse thing:2415 gripper with SG90 servo
-- [ ] Mount gripper on front of chassis at car-body height (~18-22mm)
-- [ ] Mount camera (front-facing, above gripper)
-- [ ] Wire power (separate rails for Pi and motors)
-- [ ] Basic motor spin test via GPIO
-- [ ] Calibrate gripper servo pulse widths (open / grip / max-safe)
+- [x] Mount gripper on front of chassis at car-body height (~18-22mm)
+- [x] Mount camera (front-facing, above gripper)
+- [x] Wire power (separate rails for Pi and motors)
+- [x] Basic motor spin test via GPIO
+- [x] Calibrate gripper servo pulse widths (open / grip / max-safe)
 
 ### Phase 2 - AI Detection Module
 - [ ] Choose detection approach (see Decision section below)
