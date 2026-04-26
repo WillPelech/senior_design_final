@@ -7,15 +7,18 @@ Autonomous robot that retrieves toy cars from parking spots and delivers them to
 ## Track Layout
 
 ```
-        PS2            HOME           PS1          EXIT
-     (Red Square)  (Green Circle) (Blue Square)  (Yellow Triangle)
-         │               │               │               │
-         │  (blue tape)  │  (blue tape)  │  (blue tape)  │  (black tape)
-         │               │               │               │
-─────────┴───────────────┴───────────────┴───────────────┴──────────────
-                         BLACK TAPE MAIN AISLE
+  (Red Square)                        (Blue Square)
+     PS2                                  PS1
+      │                                    │
+      │ black tape                         │ blue tape
+      │                                    │
+      └──────────────┬─────────────────────┘
+                     │ fork
+                     │ black tape
+                     │
+   (Green Circle)────┴────────────────(Yellow Triangle)
+       HOME          black tape            EXIT
 ```
-
 ### Tape Color Key
 
 | Tape Color | Purpose |
