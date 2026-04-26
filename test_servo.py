@@ -12,19 +12,19 @@ if not pi.connected:
     raise SystemExit(1)
 
 try:
-    print("Lowering lift (1000 us)...")
+    print("Lowering lift...")
     pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
-    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_UP_US)   # mirrored
     time.sleep(2)
 
-    print("Raising lift (1800 us)...")
+    print("Raising lift...")
     pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_UP_US)
-    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_UP_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US) # mirrored
     time.sleep(2)
 
-    print("Lowering lift (1000 us)...")
+    print("Lowering lift...")
     pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
-    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_UP_US)   # mirrored
     time.sleep(2)
 
 finally:
