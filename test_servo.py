@@ -1,18 +1,18 @@
 import RPi.GPIO as GPIO
 import time
 
-pins = [17, 18, 27, 22, 23, 24, 25]
+PIN = 18  # GPIO 18 = physical pin 12
 GPIO.setmode(GPIO.BCM)
+GPIO.setup(PIN, GPIO.OUT)
+p = GPIO.PWM(PIN, 50)
+p.start(0)
 
-for pin in pins:
-    print(f'Testing GPIO {pin}...')
-    GPIO.setup(pin, GPIO.OUT)
-    p = GPIO.PWM(pin, 50)
-    p.start(5)
-    time.sleep(1)
-    p.ChangeDutyCycle(10)
-    time.sleep(1)
+try:
+    for duty in [2.5, 5.0, 7.5, 10.0, 12.5]:
+        print(f'Duty cycle: {duty}%')
+        p.ChangeDutyCycle(duty)
+        time.sleep(1.5)
+finally:
     p.stop()
-    GPIO.cleanup(pin)
-
+    GPIO.cleanup()
 print('Done')
