@@ -2,32 +2,25 @@
 # =============================================================================
 # main.py  –  AI Valet Robot  –  Entry Point
 # =============================================================================
-# Wires together:
-#   CameraStream   → continuous Pi Camera frames
-#   ArucoDetector  → marker detection + pose estimation per frame
-#   MotorDriver    → Motor HAT + forklift servo
-#   NavigationController → PID state machine
-#
-# Run on the Pi with:
-#   python3 src/main.py
-#
-# Keyboard shortcuts (when DEBUG_SHOW_PREVIEW = True):
-#   q / ESC  – quit cleanly
-#   r        – reload PID gains from config (live tuning)
-#   s        – skip to next state (debug override)
-#   SPACE    – emergency stop then quit
+# SSH UI controls (press key then Enter):
+#   1      – Pick up Car 1 from PS1, deliver to EXIT, return HOME
+#   2      – Pick up Car 2 from PS2, deliver to EXIT, return HOME
+#   h      – Return robot to HOME
+#   r      – Reset to IDLE
+#   SPACE  – Emergency stop
+#   q      – Quit
 # =============================================================================
 
 import logging
 import os
+import select
 import signal
 import sys
+import termios
 import time
+import tty
 
-# ---------------------------------------------------------------------------
-# Set up logging before importing anything else
-# ---------------------------------------------------------------------------
-import src.config as config   # noqa: E402  (config first so LOG_LEVEL is available)
+import src.config as config
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL, logging.INFO),
@@ -36,15 +29,11 @@ logging.basicConfig(
 )
 log = logging.getLogger("main")
 
-# ---------------------------------------------------------------------------
-# Local imports
-# ---------------------------------------------------------------------------
 from src.camera.capture import CameraStream
 from src.detection.aruco_detector import ArucoDetector
 from src.motors.driver import MotorDriver
 from src.navigation.controller import NavigationController, State
 
-# cv2 for the optional preview window
 try:
     import cv2
     _CV2_AVAILABLE = True
@@ -53,120 +42,183 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# Frame-save helper
+# Non-blocking single-keypress reader (works over SSH, no display needed)
 # ---------------------------------------------------------------------------
-def _maybe_save_frame(frame, tick: int) -> None:
-    if not config.DEBUG_SAVE_FRAMES:
-        return
-    if tick % config.DEBUG_SAVE_EVERY_N != 0:
-        return
+
+class KeyReader:
+    """Reads single keypresses from stdin without blocking or requiring Enter."""
+
+    def __init__(self):
+        self._fd = sys.stdin.fileno()
+        self._old_settings = None
+        self._enabled = False
+        try:
+            self._old_settings = termios.tcgetattr(self._fd)
+            tty.setraw(self._fd)
+            self._enabled = True
+        except Exception:
+            # Not a real TTY (e.g. piped input) – fall back to no key input
+            self._enabled = False
+
+    def read(self) -> str:
+        """Return a key if one is waiting, else empty string."""
+        if not self._enabled:
+            return ""
+        try:
+            r, _, _ = select.select([sys.stdin], [], [], 0)
+            if r:
+                return sys.stdin.read(1)
+        except Exception:
+            pass
+        return ""
+
+    def restore(self):
+        if self._enabled and self._old_settings is not None:
+            try:
+                termios.tcsetattr(self._fd, termios.TCSADRAIN, self._old_settings)
+            except Exception:
+                pass
+
+
+# ---------------------------------------------------------------------------
+# HUD overlay for optional preview window
+# ---------------------------------------------------------------------------
+
+def _overlay_hud(img, state: State, det, tick: int, mission_name: str) -> None:
     if not _CV2_AVAILABLE:
         return
-    os.makedirs(config.DEBUG_SAVE_DIR, exist_ok=True)
-    path = os.path.join(config.DEBUG_SAVE_DIR, f"frame_{tick:06d}.jpg")
-    cv2.imwrite(path, frame)
+    cv2.putText(img, f"STATE: {state.name}  MISSION: {mission_name}",
+                (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2, cv2.LINE_AA)
+    cv2.putText(img, f"tick {tick}  line={'YES' if det.line_found else 'NO'}  x={det.line_x_error:+.0f}px",
+                (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (180, 180, 180), 1, cv2.LINE_AA)
+    flags = []
+    if det.fork_detected: flags.append("FORK")
+    if det.at_ps1:        flags.append("PS1")
+    if det.at_ps2:        flags.append("PS2")
+    if det.at_home:       flags.append("HOME")
+    if det.at_exit:       flags.append("EXIT")
+    if flags:
+        cv2.putText(img, " ".join(flags), (10, 75),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
+    cv2.putText(img, "1=CAR1  2=CAR2  h=HOME  SPC=STOP  q=QUIT",
+                (10, img.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (150, 150, 150), 1, cv2.LINE_AA)
 
 
 # ---------------------------------------------------------------------------
-# Main run loop
+# Main loop
 # ---------------------------------------------------------------------------
+
+def _print_ui_banner():
+    print("\n" + "=" * 50)
+    print("  AI Valet Robot – SSH Control")
+    print("=" * 50)
+    print("  1       Pick up Car 1 (PS1) → EXIT → HOME")
+    print("  2       Pick up Car 2 (PS2) → EXIT → HOME")
+    print("  h       Return robot to HOME")
+    print("  r       Reset to IDLE")
+    print("  SPACE   Emergency stop")
+    print("  q       Quit")
+    print("=" * 50 + "\n")
+    sys.stdout.flush()
+
+
 def run() -> None:
-    log.info("=" * 60)
-    log.info("AI Valet Robot  –  starting up")
-    log.info("=" * 60)
+    log.info("AI Valet Robot starting up")
 
-    # Instantiate subsystems
     camera   = CameraStream()
     detector = ArucoDetector()
     motors   = MotorDriver()
     nav      = NavigationController(motors)
+    keys     = KeyReader()
 
-    # Graceful shutdown on SIGINT / SIGTERM
     _shutdown_requested = [False]
 
     def _signal_handler(sig, _frame):
-        log.warning("Signal %d received – requesting shutdown", sig)
+        log.warning("Signal %d – shutdown requested", sig)
         _shutdown_requested[0] = True
 
     signal.signal(signal.SIGINT,  _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
 
-    # Start camera stream
     camera.start()
-
-    # Allow camera to warm up
-    log.info("Waiting for first camera frame…")
+    log.info("Waiting for camera...")
     deadline = time.monotonic() + config.SAFETY_CAMERA_TIMEOUT_S
     while camera.read() is None:
         if time.monotonic() > deadline:
-            log.error("Camera did not produce a frame in time – aborting")
-            camera.stop()
-            motors.cleanup()
+            log.error("Camera timeout – aborting")
+            camera.stop(); motors.cleanup(); keys.restore()
             sys.exit(1)
         time.sleep(0.05)
     log.info("Camera ready")
 
-    # Lower forks and enter SEARCHING
     nav.start()
+    _print_ui_banner()
 
     tick = 0
-    loop_interval = config.PID_DT   # seconds per main-loop iteration
+    loop_interval = config.PID_DT
 
     try:
         while not _shutdown_requested[0]:
             loop_start = time.monotonic()
 
-            # ── Camera health check ──────────────────────────────────────
+            # Camera health
             if camera.age_seconds() > config.SAFETY_CAMERA_TIMEOUT_S:
                 log.error("Camera timeout – ESTOP")
                 motors.brake()
                 break
 
-            # ── Grab frame ──────────────────────────────────────────────
+            # Grab frame
             frame = camera.read()
             if frame is None:
                 time.sleep(0.01)
                 continue
 
-            # ── Detect ──────────────────────────────────────────────────
+            # Detect
             det = detector.detect(frame)
 
-            # ── Navigate ────────────────────────────────────────────────
-            nav.tick(det)
-
-            # ── Preview window ──────────────────────────────────────────
-            if config.DEBUG_SHOW_PREVIEW and _CV2_AVAILABLE:
-                display = det.annotated if det.annotated is not None else frame
-                _overlay_state(display, nav.state, det, tick)
-                cv2.imshow("AI Valet", display)
-                key = cv2.waitKey(1)
-                key = key & 0xFF if key is not None else -1
-
-                if key in (ord('q'), 27):       # q or ESC
+            # Key input
+            key = keys.read()
+            if key:
+                if key == 'q':
                     log.info("Quit key pressed")
                     _shutdown_requested[0] = True
+                else:
+                    nav.command(key)
+                    # Print current state after command
+                    print(f"  → State: {nav.state.name}  Mission: {nav.mission.name}")
+                    sys.stdout.flush()
 
-                elif key == ord('r'):            # reload PID gains
-                    log.info("Reloading PID gains from config…")
-                    import importlib
-                    importlib.reload(config)
-                    nav.reload_pid_gains()
+            # Navigate
+            nav.tick(det)
 
-                elif key == ord(' '):            # emergency stop
-                    log.warning("SPACE pressed – emergency stop")
-                    motors.brake()
-                    _shutdown_requested[0] = True
+            # Print state periodically to terminal
+            if tick % 30 == 0:
+                print(f"  State: {nav.state.name:<10}  Mission: {nav.mission.name:<5}  "
+                      f"Line: {'YES' if det.line_found else 'NO '}"
+                      f"  x_err: {det.line_x_error:+.0f}px"
+                      f"  {'FORK' if det.fork_detected else ''}"
+                      f"{'PS1' if det.at_ps1 else ''}"
+                      f"{'PS2' if det.at_ps2 else ''}"
+                      f"{'HOME' if det.at_home else ''}"
+                      f"{'EXIT' if det.at_exit else ''}")
+                sys.stdout.flush()
 
-            # ── Save frame ──────────────────────────────────────────────
-            if det.annotated is not None:
-                _maybe_save_frame(det.annotated, tick)
+            # Optional preview window
+            if config.DEBUG_SHOW_PREVIEW and _CV2_AVAILABLE:
+                display = det.annotated if det.annotated is not None else frame
+                _overlay_hud(display, nav.state, det, tick, nav.mission.name)
+                cv2.imshow("AI Valet", display)
+                cv2.waitKey(1)
 
-            # ── Mission complete? ────────────────────────────────────────
+            # Mission done
             if nav.state in (State.DONE, State.ESTOP):
-                log.info("Mission ended in state %s", nav.state.name)
-                break
+                print(f"\n  Mission ended: {nav.state.name}")
+                if nav.state == State.DONE:
+                    print("  Press 1 or 2 for next mission, q to quit.")
+                    nav._transition(State.IDLE)
+                sys.stdout.flush()
 
-            # ── Rate-limit main loop ─────────────────────────────────────
+            # Rate limit
             elapsed = time.monotonic() - loop_start
             sleep_for = loop_interval - elapsed
             if sleep_for > 0:
@@ -175,7 +227,8 @@ def run() -> None:
             tick += 1
 
     finally:
-        log.info("Shutting down…")
+        log.info("Shutting down...")
+        keys.restore()
         nav.shutdown()
         camera.stop()
         motors.cleanup()
@@ -184,83 +237,5 @@ def run() -> None:
         log.info("Shutdown complete. Total ticks: %d", tick)
 
 
-# ---------------------------------------------------------------------------
-# Preview overlay helper
-# ---------------------------------------------------------------------------
-def _overlay_state(
-    img,
-    state: State,
-    det,
-    tick: int,
-) -> None:
-    """Draw HUD info onto the preview frame in-place."""
-    if not _CV2_AVAILABLE:
-        return
-
-    # State name (top-left)
-    cv2.putText(
-        img,
-        f"STATE: {state.name}",
-        (10, 25),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.65,
-        (0, 255, 255),
-        2,
-        cv2.LINE_AA,
-    )
-
-    # Tick counter
-    cv2.putText(
-        img,
-        f"tick {tick}",
-        (10, 50),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.45,
-        (180, 180, 180),
-        1,
-        cv2.LINE_AA,
-    )
-
-    if det.found_car:
-        # Distance bar
-        bar_max_m  = 1.0                           # full bar = 1 metre
-        bar_width  = int((det.distance / bar_max_m) * 200)
-        bar_width  = min(bar_width, 200)
-        cv2.rectangle(img, (10, 60), (10 + bar_width, 75), (0, 200, 100), -1)
-        cv2.rectangle(img, (10, 60), (210, 75), (255, 255, 255), 1)
-        cv2.putText(
-            img, f"dist {det.distance:.2f}m",
-            (10, 90),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 200, 100), 1, cv2.LINE_AA,
-        )
-
-        # X-error indicator (centre line)
-        cx = img.shape[1] // 2
-        cy = img.shape[0] // 2
-        # 1 pixel per 0.5 mm
-        offset_px = int(det.x_error * 2000)
-        cv2.arrowedLine(
-            img,
-            (cx, cy),
-            (cx + offset_px, cy),
-            (0, 80, 255), 2, tipLength=0.3,
-        )
-
-    # Key hints at bottom
-    cv2.putText(
-        img,
-        "q=quit  r=reload-PID  SPACE=estop",
-        (10, img.shape[0] - 10),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.38,
-        (150, 150, 150),
-        1,
-        cv2.LINE_AA,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     run()

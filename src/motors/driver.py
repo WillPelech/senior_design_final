@@ -179,61 +179,30 @@ class MotorDriver:
         self.set_motors(spd, -spd)
 
     # ------------------------------------------------------------------
-    # Gripper servo  (Thingiverse thing:2415 – Mini Servo Gripper)
+    # Lift servo
     # ------------------------------------------------------------------
-    # The gripper has two states that matter for the state machine:
-    #   OPEN   – jaws wide, robot can drive up to the car
-    #   CLOSED – jaws grip the car body
-    #
-    # IMPORTANT: always call gripper_open() before driving anywhere so
-    # the jaws don't drag on the ground or snag on obstacles.
 
-    def gripper_open(self) -> None:
-        """
-        Open the gripper jaws fully.
-        Call this before approaching a target and before returning home.
-        """
-        self._set_servo_pulse(config.SERVO_PULSE_OPEN_US)
+    def lift_up(self) -> None:
+        """Raise the lift platform to carry the car."""
+        self._set_servo_pulse(config.SERVO_PULSE_UP_US)
+        self._gripper_closed = True
+        log.info("Lift UP (%.0fus)", config.SERVO_PULSE_UP_US)
+
+    def lift_down(self) -> None:
+        """Lower the lift platform to travel/release position."""
+        self._set_servo_pulse(config.SERVO_PULSE_DOWN_US)
         self._gripper_closed = False
-        log.info("Gripper OPEN (%.0fus)", config.SERVO_PULSE_OPEN_US)
-        time.sleep(config.SERVO_TRAVEL_TIME_S)
+        log.info("Lift DOWN (%.0fus)", config.SERVO_PULSE_DOWN_US)
+
+    # kept for compatibility
+    def gripper_open(self) -> None:
+        self.lift_down()
 
     def gripper_close(self) -> None:
-        """
-        Close the gripper to the grip pulse (not necessarily fully closed).
-        Uses SERVO_PULSE_GRIP_US so you can tune grip force without
-        changing the hard-closed endpoint.
-        """
-        # Safety clamp: never exceed the max-safe pulse to avoid binding
-        pulse = min(config.SERVO_PULSE_GRIP_US, config.SERVO_PULSE_MAX_SAFE_US)
-        self._set_servo_pulse(pulse)
-        self._gripper_closed = True
-        log.info("Gripper CLOSED (%.0fus)", pulse)
-        time.sleep(config.SERVO_TRAVEL_TIME_S)
-
-    def gripper_half(self) -> None:
-        """
-        Move gripper to half-open position.
-        Useful as a safe startup position and for calibration.
-        """
-        self._set_servo_pulse(config.SERVO_PULSE_HALF_US)
-        self._gripper_closed = False
-        log.info("Gripper HALF (%.0fus)", config.SERVO_PULSE_HALF_US)
-
-    def gripper_set_pulse(self, pulse_us: float) -> None:
-        """
-        Directly set a specific pulse width in microseconds.
-        Use this for manual calibration / finding your open and closed endpoints.
-        Will clamp to SERVO_PULSE_MAX_SAFE_US automatically.
-        """
-        pulse_us = min(pulse_us, config.SERVO_PULSE_MAX_SAFE_US)
-        pulse_us = max(pulse_us, config.SERVO_PULSE_OPEN_US)
-        self._set_servo_pulse(pulse_us)
-        log.info("Gripper manual pulse=%.0fus", pulse_us)
+        self.lift_up()
 
     @property
     def gripper_is_closed(self) -> bool:
-        """True if the gripper is in the closed (gripping) state."""
         return self._gripper_closed
 
     def _set_servo_pulse(self, pulse_us: float) -> None:
