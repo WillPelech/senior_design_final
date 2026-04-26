@@ -1,34 +1,34 @@
-import RPi.GPIO as GPIO
 import time
+import pigpio
 
-# FS90R continuous rotation servo
-# Connect signal wire to physical pin 12 (GPIO 18)
-PIN = 18
+SERVO_GPIO_1 = 18
+SERVO_GPIO_2 = 27
+PULSE_DOWN_US = 1000
+PULSE_UP_US   = 1800
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(PIN, GPIO.OUT)
+pi = pigpio.pi()
+if not pi.connected:
+    print("pigpio daemon not running. Start it with: sudo pigpiod")
+    raise SystemExit(1)
 
-# Use hardware PWM at 50Hz
-p = GPIO.PWM(PIN, 50)
-p.start(7.5)  # neutral
-time.sleep(1)
+try:
+    print("Lowering lift (1000 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
+    time.sleep(2)
 
-print('Forward (duty=10)...')
-p.ChangeDutyCycle(10)
-time.sleep(3)
+    print("Raising lift (1800 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_UP_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_UP_US)
+    time.sleep(2)
 
-print('Neutral (duty=7.5)...')
-p.ChangeDutyCycle(7.5)
-time.sleep(2)
+    print("Lowering lift (1000 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
+    time.sleep(2)
 
-print('Reverse (duty=5)...')
-p.ChangeDutyCycle(5)
-time.sleep(3)
-
-print('Neutral...')
-p.ChangeDutyCycle(7.5)
-time.sleep(1)
-
-p.stop()
-GPIO.cleanup()
-print('Done')
+finally:
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, 0)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, 0)
+    pi.stop()
+    print("Done.")
