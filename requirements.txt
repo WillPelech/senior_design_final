@@ -13,10 +13,12 @@
 #   sudo apt install -y python3-opencv python3-numpy
 
 
-# Adafruit Motor HAT + Servo
+# Adafruit Motor HAT
 adafruit-circuitpython-motorkit>=1.6.0
-adafruit-circuitpython-servokit>=1.3.0
 adafruit-blinka>=8.0.0           # CircuitPython compatibility layer for Pi
+
+# Servo control (DMA-timed PWM — requires daemon: sudo pigpiod)
+pigpio>=1.78
 
 # picamera2 – usually installed via apt, but listed here for completeness
 # Uncomment if not pre-installed:

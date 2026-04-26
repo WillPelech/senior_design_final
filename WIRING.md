@@ -176,7 +176,7 @@ all 40 pins through).
 
 | Servo wire | Color (typical) | Pi Pin | Label |
 |-----------|----------------|--------|-------|
-| Signal    | Orange / Yellow | Pin 12 | GPIO 18 |
+| Signal    | Orange / Yellow | Pin 32 | GPIO 12 |
 | Power (+) | Red            | Pin 2  | 5V |
 | Ground    | Brown / Black  | Pin 6  | GND |
 
@@ -184,7 +184,7 @@ all 40 pins through).
 > has more mechanical load than a bare servo horn - 3.3V may cause it to
 > twitch or stall under grip force. The SG90/MG90S is rated 4.8-6V.
 
-**GPIO pin in config:** `SERVO_GPIO_PIN = 18` in `src/config.py`. Change this
+**GPIO pin in config:** `SERVO_GPIO_PIN = 12` in `src/config.py`. Change this
 number if you wire the servo signal to a different GPIO pin.
 
 ```
@@ -192,7 +192,7 @@ Pi GPIO header (looking down at the top of the Motor HAT passthrough)
 
 Pin  2  ──── 5V      ──── Servo VCC    (red)
 Pin  6  ──── GND     ──── Servo GND    (brown/black)
-Pin 12  ──── GPIO 18 ──── Servo SIGNAL (orange/yellow)
+Pin 32  ──── GPIO 12 ──── Servo SIGNAL (orange/yellow)
 ```
 
 ### Gripper mounting
@@ -302,7 +302,7 @@ Go through this before turning anything on:
 | Motors don't spin at all | Check battery switch is ON; check VIN wired to HAT not Pi |
 | Pi crashes when motors run | Motors and Pi sharing power – use separate power bank for Pi |
 | Gripper twitches / weak | Check VCC is on 5V (Pin 2) not 3.3V; check battery is charged |
-| Gripper doesn't move | Check signal wire is on GPIO 18 / Pin 12; check `SERVO_GPIO_PIN = 18` in config |
+| Gripper doesn't move | Check signal wire is on GPIO 12 / Pin 32; check `SERVO_GPIO_PIN = 12` in config |
 | Gripper grinds / binds | `SERVO_PULSE_GRIP_US` is too high – reduce it in config.py |
 | Camera not detected | Ribbon not fully seated; latch not closed; run `vcgencmd get_camera` to verify |
 | Robot drifts left/right | Motors not matched; tune `STEER_KP` in config or physically swap a motor wire |

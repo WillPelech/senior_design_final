@@ -107,15 +107,15 @@ Pin  2  ──── 5V  ──────┬──── Servo 1 VCC  (red)
 Pin  6  ──── GND ──────┬──── Servo 1 GND  (brown)
                         └──── Servo 2 GND  (brown)
 
-Pin 12  ──── GPIO 18 ───── Servo 1 Signal (orange)
+Pin 32  ──── GPIO 12 ───── Servo 1 Signal (orange)
 
-Pin 13  ──── GPIO 27 ───── Servo 2 Signal (orange)
+Pin 33  ──── GPIO 13 ───── Servo 2 Signal (orange)
 ```
 
 | FS90 | Signal Pin | GPIO |
 |------|-----------|------|
-| Servo 1 | Pin 12 | GPIO 18 |
-| Servo 2 | Pin 13 | GPIO 27 |
+| Servo 1 | Pin 32 | GPIO 12 |
+| Servo 2 | Pin 33 | GPIO 13 |
 
 Both share 5V (Pin 2) and GND (Pin 6).
 
