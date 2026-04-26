@@ -1,10 +1,10 @@
 import time
 import pigpio
 
+SERVO_GPIO_1 = 12
+SERVO_GPIO_2 = 13
 PULSE_DOWN_US = 1000
 PULSE_UP_US   = 1800
-
-CANDIDATE_PINS = [12, 13, 18, 19, 21, 22, 23, 24, 25, 26, 27]
 
 pi = pigpio.pi()
 if not pi.connected:
@@ -12,18 +12,23 @@ if not pi.connected:
     raise SystemExit(1)
 
 try:
-    for pin in CANDIDATE_PINS:
-        print(f"Testing GPIO {pin} — watch for servo movement...")
-        pi.set_servo_pulsewidth(pin, PULSE_DOWN_US)
-        time.sleep(1)
-        pi.set_servo_pulsewidth(pin, PULSE_UP_US)
-        time.sleep(1)
-        pi.set_servo_pulsewidth(pin, PULSE_DOWN_US)
-        time.sleep(1)
-        pi.set_servo_pulsewidth(pin, 0)
-        print(f"  GPIO {pin} done")
+    print("Lowering lift (1000 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
+    time.sleep(2)
+
+    print("Raising lift (1800 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_UP_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_UP_US)
+    time.sleep(2)
+
+    print("Lowering lift (1000 us)...")
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, PULSE_DOWN_US)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, PULSE_DOWN_US)
+    time.sleep(2)
+
 finally:
-    for pin in CANDIDATE_PINS:
-        pi.set_servo_pulsewidth(pin, 0)
+    pi.set_servo_pulsewidth(SERVO_GPIO_1, 0)
+    pi.set_servo_pulsewidth(SERVO_GPIO_2, 0)
     pi.stop()
-    print("Scan complete.")
+    print("Done.")
