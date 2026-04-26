@@ -1,23 +1,22 @@
-import RPi.GPIO as GPIO
 import time
+from adafruit_servokit import ServoKit
 
-PIN = 18  # GPIO 18 = physical pin 12
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(PIN, GPIO.OUT)
-p = GPIO.PWM(PIN, 50)
-p.start(0)
+kit = ServoKit(channels=16)
 
-try:
-    print('Running at 2.5% for 3 seconds...')
-    p.ChangeDutyCycle(2.5)
-    time.sleep(3)
-    print('Running at 7.5% (neutral) for 3 seconds...')
-    p.ChangeDutyCycle(7.5)
-    time.sleep(3)
-    print('Running at 12.5% for 3 seconds...')
-    p.ChangeDutyCycle(12.5)
-    time.sleep(3)
-finally:
-    p.stop()
-    GPIO.cleanup()
-print('Done')
+# FS90R is a continuous rotation servo
+# throttle: 1.0 = full forward, 0.0 = stop, -1.0 = full reverse
+
+print('Forward for 2 seconds...')
+kit.continuous_servo[0].throttle = 0.5
+time.sleep(2)
+
+print('Stop...')
+kit.continuous_servo[0].throttle = 0
+time.sleep(1)
+
+print('Reverse for 2 seconds...')
+kit.continuous_servo[0].throttle = -0.5
+time.sleep(2)
+
+print('Stop.')
+kit.continuous_servo[0].throttle = 0

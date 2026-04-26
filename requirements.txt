@@ -13,8 +13,9 @@
 #   sudo apt install -y python3-opencv python3-numpy
 
 
-# Adafruit Motor HAT
+# Adafruit Motor HAT + Servo
 adafruit-circuitpython-motorkit>=1.6.0
+adafruit-circuitpython-servokit>=1.3.0
 adafruit-blinka>=8.0.0           # CircuitPython compatibility layer for Pi
 
 # picamera2 – usually installed via apt, but listed here for completeness
