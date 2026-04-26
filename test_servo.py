@@ -4,7 +4,7 @@ import pigpio
 SERVO_GPIO_1 = 12
 SERVO_GPIO_2 = 13
 PULSE_DOWN_US = 1000
-PULSE_UP_US   = 1800
+PULSE_UP_US   = 1400
 
 pi = pigpio.pi()
 if not pi.connected:
