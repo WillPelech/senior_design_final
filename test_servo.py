@@ -8,10 +8,15 @@ p = GPIO.PWM(PIN, 50)
 p.start(0)
 
 try:
-    for duty in [2.5, 5.0, 7.5, 10.0, 12.5]:
-        print(f'Duty cycle: {duty}%')
-        p.ChangeDutyCycle(duty)
-        time.sleep(1.5)
+    print('Running at 2.5% for 3 seconds...')
+    p.ChangeDutyCycle(2.5)
+    time.sleep(3)
+    print('Running at 7.5% (neutral) for 3 seconds...')
+    p.ChangeDutyCycle(7.5)
+    time.sleep(3)
+    print('Running at 12.5% for 3 seconds...')
+    p.ChangeDutyCycle(12.5)
+    time.sleep(3)
 finally:
     p.stop()
     GPIO.cleanup()
