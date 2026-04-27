@@ -179,7 +179,7 @@ SAFETY_NAV_TIMEOUT_S = 30.0
 # -----------------------------------------------------------------------------
 
 # Show OpenCV preview window (requires display – set False when SSH only)
-DEBUG_SHOW_PREVIEW = True
+DEBUG_SHOW_PREVIEW = False
 
 # Serve live MJPEG stream at http://<pi-ip>:DEBUG_STREAM_PORT
 DEBUG_STREAM_VIDEO = True
