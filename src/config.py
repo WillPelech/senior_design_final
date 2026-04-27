@@ -56,7 +56,7 @@ LINE_SAMPLE_ROW = int(CAMERA_HEIGHT * 0.75)
 LINE_MIN_WIDTH_PX = 20
 
 # Maximum width of the detected line in pixels (filters out large dark patches).
-LINE_MAX_WIDTH_PX = 200
+LINE_MAX_WIDTH_PX = 800
 
 # HSV range for blue tape (branch lines + fork junction)
 BLUE_HSV_LOW  = [100, 80, 50]
