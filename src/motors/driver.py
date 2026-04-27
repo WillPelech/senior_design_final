@@ -12,7 +12,9 @@
 # =============================================================================
 
 import logging
+import math
 import time
+from typing import Tuple
 
 import sys
 import os
@@ -33,14 +35,26 @@ except ImportError:
     _HAT_AVAILABLE = False
 
 try:
-    import pigpio
-    _PIGPIO_AVAILABLE = True
+    import RPi.GPIO as GPIO
+    _GPIO_AVAILABLE = True
 except ImportError:
-    _PIGPIO_AVAILABLE = False
+    _GPIO_AVAILABLE = False
 
 
+# ---------------------------------------------------------------------------
+# Helper: clamp a value to [-1, 1]
+# ---------------------------------------------------------------------------
 def _clamp(value: float, lo: float = -1.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, value))
+
+
+# ---------------------------------------------------------------------------
+# Helper: convert microseconds → duty cycle percentage for RPi.GPIO PWM
+# Formula: duty = (pulse_us / period_us) * 100
+# ---------------------------------------------------------------------------
+def _us_to_duty(pulse_us: float, freq_hz: float) -> float:
+    period_us = 1_000_000.0 / freq_hz
+    return (pulse_us / period_us) * 100.0
 
 
 class MotorDriver:
@@ -59,16 +73,16 @@ class MotorDriver:
 
     def __init__(self) -> None:
         self._kit = None
-        self._pi  = None
+        self._pwm  = None   # lift servo 1 (GPIO 18 / Pin 12)
+        self._pwm2 = None   # lift servo 2 (GPIO 27 / Pin 13)
         self._gripper_closed = False
 
         self._init_motors()
         self._init_servo()
 
         log.info(
-            "MotorDriver ready | HAT=%s | pigpio=%s | servo_pins=%d,%d",
-            _HAT_AVAILABLE, _PIGPIO_AVAILABLE,
-            config.SERVO_GPIO_PIN, config.SERVO_GPIO_PIN_2,
+            "MotorDriver ready | HAT=%s | GPIO=%s | servo_pin=%d",
+            _HAT_AVAILABLE, _GPIO_AVAILABLE, config.SERVO_GPIO_PIN,
         )
 
     # ------------------------------------------------------------------
@@ -92,21 +106,28 @@ class MotorDriver:
     def _init_servo(self) -> None:
         if config.STUB_MOTORS:
             return
-        if not _PIGPIO_AVAILABLE:
-            log.warning("pigpio not available – servo in STUB mode")
+        if config.SERVO_USE_HAT_CHANNEL:
+            log.info("Servo will use Motor HAT channel %d", config.SERVO_HAT_CHANNEL)
             return
-        try:
-            self._pi = pigpio.pi()
-            if not self._pi.connected:
-                log.error("pigpio daemon not running (sudo pigpiod) – servo in STUB mode")
-                self._pi = None
-                return
-            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN,   config.SERVO_PULSE_DOWN_US)
-            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN_2, config.SERVO_PULSE_DOWN_US)
-            log.info("Lift servos ready on GPIO %d and %d", config.SERVO_GPIO_PIN, config.SERVO_GPIO_PIN_2)
-        except Exception as exc:
-            log.error("pigpio init failed: %s – servo in STUB mode", exc)
-            self._pi = None
+
+        if _GPIO_AVAILABLE:
+            try:
+                GPIO.setmode(GPIO.BCM)
+                # Servo 1 — Pin 12 / GPIO 18
+                GPIO.setup(config.SERVO_GPIO_PIN, GPIO.OUT)
+                self._pwm = GPIO.PWM(config.SERVO_GPIO_PIN, config.SERVO_PWM_FREQ_HZ)
+                self._pwm.start(_us_to_duty(config.SERVO_PULSE_DOWN_US, config.SERVO_PWM_FREQ_HZ))
+                # Servo 2 — Pin 13 / GPIO 27
+                GPIO.setup(config.SERVO_GPIO_PIN_2, GPIO.OUT)
+                self._pwm2 = GPIO.PWM(config.SERVO_GPIO_PIN_2, config.SERVO_PWM_FREQ_HZ)
+                self._pwm2.start(_us_to_duty(config.SERVO_PULSE_DOWN_US, config.SERVO_PWM_FREQ_HZ))
+                log.info("Lift servos started on GPIO %d and %d", config.SERVO_GPIO_PIN, config.SERVO_GPIO_PIN_2)
+            except Exception as exc:
+                log.error("Servo GPIO init failed: %s – servo in STUB mode", exc)
+                self._pwm = None
+                self._pwm2 = None
+        else:
+            log.warning("RPi.GPIO not available – servo in STUB mode")
 
     # ------------------------------------------------------------------
     # Drive motors
@@ -124,9 +145,9 @@ class MotorDriver:
         right = _clamp(self._apply_deadband(right))
 
         if _HAT_AVAILABLE and self._kit is not None:
-            # Motor HAT: M2 = left drive, M1 = right drive
-            self._kit.motor2.throttle = left
-            self._kit.motor1.throttle = right
+            # Motor HAT: M1 = left drive, M2 = right drive
+            self._kit.motor1.throttle = left
+            self._kit.motor2.throttle = right
         else:
             log.debug("STUB motors | L=%.2f  R=%.2f", left, right)
 
@@ -190,12 +211,34 @@ class MotorDriver:
         return self._gripper_closed
 
     def _set_servo_pulse(self, pulse_us: float) -> None:
-        if self._pi is not None:
-            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN,   int(pulse_us))
-            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN_2, int(pulse_us))
-            log.debug("Lift servos pulse=%dus", int(pulse_us))
+        """Send pulse to both lift servos in sync."""
+        if config.SERVO_USE_HAT_CHANNEL:
+            self._set_servo_hat(pulse_us)
+        elif self._pwm is not None:
+            duty = _us_to_duty(pulse_us, config.SERVO_PWM_FREQ_HZ)
+            self._pwm.ChangeDutyCycle(duty)
+            if self._pwm2 is not None:
+                self._pwm2.ChangeDutyCycle(duty)
+            log.debug("Lift servos pulse=%.0fus duty=%.2f%%", pulse_us, duty)
         else:
-            log.debug("STUB servo pulse=%dus", int(pulse_us))
+            log.debug("STUB servo pulse=%.0fus", pulse_us)
+
+    def _set_servo_hat(self, pulse_us: float) -> None:
+        """Drive servo through the Motor HAT servo channel."""
+        if not (_HAT_AVAILABLE and self._kit is not None):
+            log.debug("STUB HAT servo pulse=%.0fus", pulse_us)
+            return
+        # MotorKit servo uses angle 0–180 degrees; convert pulse → angle
+        # Pulse range 1000us=0° to 2000us=180° (adjust for your servo)
+        pulse_min_us = 1000.0
+        pulse_max_us = 2000.0
+        angle = (pulse_us - pulse_min_us) / (pulse_max_us - pulse_min_us) * 180.0
+        angle = max(0.0, min(180.0, angle))
+        try:
+            servo = getattr(self._kit, f"servo{config.SERVO_HAT_CHANNEL}")
+            servo.angle = angle
+        except AttributeError:
+            log.error("Invalid SERVO_HAT_CHANNEL=%d", config.SERVO_HAT_CHANNEL)
 
     # ------------------------------------------------------------------
     # Dead-band
@@ -217,8 +260,13 @@ class MotorDriver:
     def cleanup(self) -> None:
         """Release motors and servo. Call on shutdown."""
         self.stop()
-        if self._pi is not None:
-            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN,   0)
-            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN_2, 0)
-            self._pi.stop()
+        if self._pwm is not None:
+            self._pwm.stop()
+        if self._pwm2 is not None:
+            self._pwm2.stop()
+        if _GPIO_AVAILABLE:
+            try:
+                GPIO.cleanup()
+            except Exception:
+                pass
         log.info("MotorDriver cleaned up")
