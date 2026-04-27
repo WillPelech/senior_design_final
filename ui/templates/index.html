@@ -3,150 +3,325 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Valet Robot</title>
+  <title>V.O.R.A – Valet Robot</title>
+  <link rel="icon" type="image/png" href="/static/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:    #e02020;
+      --red-dim: #8b1010;
+      --bg:     #0a0a0f;
+      --surface:#13131c;
+      --border: #1e1e2e;
+      --text:   #e8e8f0;
+      --muted:  #5a5a78;
+      --green:  #34d399;
+      --blue:   #60a5fa;
+      --yellow: #fbbf24;
+      --purple: #a78bfa;
+      --orange: #fb923c;
+    }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #e0e0e0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 30px 20px;
+      padding: 32px 20px 48px;
     }
 
-    h1 {
-      font-size: 1.8rem;
-      letter-spacing: 2px;
-      color: #ffffff;
-      margin-bottom: 6px;
+    /* ── Header ── */
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
     }
 
-    .subtitle { color: #666; font-size: 0.85rem; margin-bottom: 30px; }
+    .header img {
+      width: 90px;
+      height: 90px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 18px rgba(224,32,32,0.45));
+    }
 
-    /* Robot status bar */
-    .robot-status {
+    .header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: #fff;
+    }
+
+    .header .tagline {
+      font-size: 0.72rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Robot status card ── */
+    .status-card {
       width: 100%;
-      max-width: 600px;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
+      max-width: 580px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
     }
 
-    .status-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-    .status-value { font-size: 1.1rem; font-weight: 600; margin-top: 4px; }
+    .status-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(224,32,32,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
 
-    .state-IDLE     { color: #4ade80; }
-    .state-NAVIGATE { color: #60a5fa; }
-    .state-AT_SPOT  { color: #facc15; }
-    .state-DELIVER  { color: #fb923c; }
-    .state-AT_EXIT  { color: #a78bfa; }
-    .state-RETURN   { color: #60a5fa; }
-    .state-DONE     { color: #4ade80; }
-    .state-ESTOP    { color: #f87171; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-    /* Car cards */
-    .cars { display: flex; gap: 20px; width: 100%; max-width: 600px; margin-bottom: 24px; flex-wrap: wrap; }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    .pulse-dot.offline { background: var(--muted); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .status-group { display: flex; flex-direction: column; gap: 3px; }
+    .status-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+    .status-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 600; }
+
+    .state-IDLE     { color: var(--green); }
+    .state-NAVIGATE { color: var(--blue); }
+    .state-AT_SPOT  { color: var(--yellow); }
+    .state-DELIVER  { color: var(--orange); }
+    .state-AT_EXIT  { color: var(--purple); }
+    .state-RETURN   { color: var(--blue); }
+    .state-DONE     { color: var(--green); }
+    .state-ESTOP    { color: var(--red); }
+
+    /* ── Car cards ── */
+    .cars {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+      max-width: 580px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
 
     .car-card {
       flex: 1;
       min-width: 240px;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
     }
 
-    .car-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .car-status-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.75rem;
+    .car-card:hover { border-color: #2e2e44; }
+
+    .car-card::after {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(224,32,32,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .car-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .car-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .car-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.68rem;
       font-weight: 600;
-      margin-bottom: 16px;
-      text-transform: uppercase;
       letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
     }
 
-    .badge-waiting           { background: #1f2937; color: #9ca3af; }
-    .badge-ready             { background: #14532d; color: #4ade80; }
-    .badge-being_picked_up   { background: #1e3a5f; color: #60a5fa; }
-    .badge-parked            { background: #3b1e6d; color: #c4b5fd; }
-    .badge-ready_to_retrieve { background: #713f12; color: #fbbf24; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
 
-    .car-buttons { display: flex; flex-direction: column; gap: 8px; }
+    .badge-waiting           { background: #1a1a2e; color: #6b7280; }
+    .badge-waiting .badge-dot { background: #4b5563; }
+    .badge-ready             { background: #052e16; color: #34d399; }
+    .badge-ready .badge-dot  { background: #34d399; }
+    .badge-being_picked_up   { background: #0c1a3d; color: #60a5fa; }
+    .badge-being_picked_up .badge-dot { background: #60a5fa; }
+    .badge-parked            { background: #1e0a4e; color: #c4b5fd; }
+    .badge-parked .badge-dot { background: #c4b5fd; }
 
+    .car-buttons { display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── Buttons ── */
     button {
-      padding: 10px 16px;
+      font-family: 'Inter', sans-serif;
+      padding: 11px 18px;
       border: none;
-      border-radius: 8px;
-      font-size: 0.85rem;
+      border-radius: 10px;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      letter-spacing: 0.3px;
     }
 
     button:active { transform: scale(0.97); }
-    button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    button:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
 
-    .btn-ready    { background: #16a34a; color: white; }
-    .btn-retrieve { background: #7c3aed; color: white; }
-    .btn-estop    { background: #dc2626; color: white; font-size: 1rem; letter-spacing: 1px; }
+    .btn-ready {
+      background: linear-gradient(135deg, #166534, #14532d);
+      color: #86efac;
+      border: 1px solid #15803d44;
+      box-shadow: 0 2px 8px rgba(20,83,45,0.4);
+    }
+    .btn-ready:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(20,83,45,0.6); }
 
-    .estop-section { width: 100%; max-width: 600px; }
-    .estop-section button { width: 100%; padding: 14px; }
+    .btn-retrieve {
+      background: linear-gradient(135deg, #3b0764, #2e1065);
+      color: #d8b4fe;
+      border: 1px solid #6d28d944;
+      box-shadow: 0 2px 8px rgba(59,7,100,0.4);
+    }
+    .btn-retrieve:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(109,40,217,0.5); }
 
+    /* ── E-Stop ── */
+    .estop-section { width: 100%; max-width: 580px; margin-bottom: 20px; }
+
+    .btn-estop {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #7f1d1d, #991b1b);
+      color: #fca5a5;
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+      border: 1px solid #ef444433;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(220,38,38,0.35);
+    }
+    .btn-estop:hover { box-shadow: 0 6px 28px rgba(220,38,38,0.55); }
+
+    /* ── Log ── */
     .log {
       width: 100%;
-      max-width: 600px;
-      margin-top: 20px;
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-family: monospace;
-      font-size: 0.78rem;
-      color: #6b7280;
-      max-height: 120px;
+      max-width: 580px;
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      max-height: 130px;
       overflow-y: auto;
     }
 
-    .log-entry { margin-bottom: 4px; }
-    .log-entry span { color: #4ade80; }
+    .log::-webkit-scrollbar { width: 4px; }
+    .log::-webkit-scrollbar-track { background: transparent; }
+    .log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .log-entry { margin-bottom: 5px; line-height: 1.4; }
+    .log-entry .ts { color: var(--red-dim); margin-right: 6px; }
+    .log-entry .msg { color: #9ca3af; }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 28px;
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #2a2a3e;
+    }
   </style>
 </head>
 <body>
 
-  <h1>AI VALET ROBOT</h1>
-  <div class="subtitle">Control Panel</div>
+  <!-- Header -->
+  <div class="header">
+    <img src="/static/logo.png" alt="V.O.R.A Logo">
+    <h1>V.O.R.A</h1>
+    <div class="tagline">Autonomous Valet System</div>
+  </div>
 
-  <!-- Robot status -->
-  <div class="robot-status">
-    <div>
+  <!-- Robot Status -->
+  <div class="status-card">
+    <div class="status-group">
       <div class="status-label">Robot State</div>
-      <div class="status-value" id="robot-state">—</div>
+      <div class="status-value state-IDLE" id="robot-state">IDLE</div>
     </div>
-    <div>
-      <div class="status-label">Mission</div>
-      <div class="status-value" id="mission">—</div>
+    <div class="status-group" style="text-align:center">
+      <div class="status-label">Active Mission</div>
+      <div class="status-value" id="mission" style="color:#e8e8f0">—</div>
+    </div>
+    <div class="status-pill">
+      <div class="pulse-dot" id="conn-dot"></div>
+      <span style="font-size:0.72rem; color:var(--muted)" id="conn-label">Connected</span>
     </div>
   </div>
 
-  <!-- Car cards -->
+  <!-- Car Cards -->
   <div class="cars">
     <!-- Car 1 -->
     <div class="car-card">
-      <div class="car-title">🚗 Car 1</div>
-      <div class="car-status-badge badge-waiting" id="car1-badge">Waiting</div>
+      <div class="car-header">
+        <div class="car-title">Car 1</div>
+        <div class="car-icon">🚗</div>
+      </div>
+      <div class="badge badge-waiting" id="car1-badge">
+        <div class="badge-dot"></div>
+        <span>Waiting</span>
+      </div>
       <div class="car-buttons">
         <button class="btn-ready" id="btn-car1-ready" onclick="sendCommand('car1_ready')">
           Car 1 Ready to Park
@@ -159,8 +334,14 @@
 
     <!-- Car 2 -->
     <div class="car-card">
-      <div class="car-title">🚗 Car 2</div>
-      <div class="car-status-badge badge-waiting" id="car2-badge">Waiting</div>
+      <div class="car-header">
+        <div class="car-title">Car 2</div>
+        <div class="car-icon">🚙</div>
+      </div>
+      <div class="badge badge-waiting" id="car2-badge">
+        <div class="badge-dot"></div>
+        <span>Waiting</span>
+      </div>
       <div class="car-buttons">
         <button class="btn-ready" id="btn-car2-ready" onclick="sendCommand('car2_ready')">
           Car 2 Ready to Park
@@ -172,39 +353,42 @@
     </div>
   </div>
 
-  <!-- Emergency stop -->
+  <!-- Emergency Stop -->
   <div class="estop-section">
-    <button class="btn-estop" onclick="sendCommand('estop')">⚠ EMERGENCY STOP</button>
+    <button class="btn-estop" onclick="sendCommand('estop')">EMERGENCY STOP</button>
   </div>
 
   <!-- Log -->
-  <div class="log" id="log"></div>
+  <div class="log" id="log">
+    <div class="log-entry"><span class="ts">--:--:--</span><span class="msg">System ready.</span></div>
+  </div>
+
+  <div class="footer">V.O.R.A &nbsp;·&nbsp; Autonomous Valet Robot</div>
 
   <script>
     const STATUS_LABELS = {
-      waiting:           'Waiting',
-      ready:             'Ready to Park',
-      being_picked_up:   'Being Picked Up',
-      parked:            'Parked',
-      ready_to_retrieve: 'Ready to Retrieve',
+      waiting:         'Waiting',
+      ready:           'Ready to Park',
+      being_picked_up: 'Being Picked Up',
+      parked:          'Parked',
     };
 
-    function addLog(msg) {
+    function addLog(msg, isError = false) {
       const log = document.getElementById('log');
       const now = new Date().toLocaleTimeString();
-      const el = document.createElement('div');
+      const el  = document.createElement('div');
       el.className = 'log-entry';
-      el.innerHTML = `<span>[${now}]</span> ${msg}`;
+      el.innerHTML = `<span class="ts">[${now}]</span><span class="msg" style="${isError ? 'color:#f87171' : ''}">${msg}</span>`;
       log.prepend(el);
     }
 
     function updateCarUI(num, status) {
-      const badge = document.getElementById(`car${num}-badge`);
-      const btnReady    = document.getElementById(`btn-car${num}-ready`);
+      const badge      = document.getElementById(`car${num}-badge`);
+      const btnReady   = document.getElementById(`btn-car${num}-ready`);
       const btnRetrieve = document.getElementById(`btn-car${num}-retrieve`);
 
-      badge.textContent = STATUS_LABELS[status] || status;
-      badge.className = `car-status-badge badge-${status}`;
+      badge.querySelector('span').textContent = STATUS_LABELS[status] || status;
+      badge.className = `badge badge-${status}`;
 
       btnReady.disabled    = status !== 'waiting';
       btnRetrieve.disabled = status !== 'parked';
@@ -216,36 +400,45 @@
         const data = await res.json();
 
         const stateEl = document.getElementById('robot-state');
-        stateEl.textContent  = data.robot_state;
-        stateEl.className    = `status-value state-${data.robot_state}`;
-        document.getElementById('mission').textContent = data.mission;
+        stateEl.textContent = data.robot_state;
+        stateEl.className   = `status-value state-${data.robot_state}`;
+        document.getElementById('mission').textContent = data.mission || '—';
+
+        const dot   = document.getElementById('conn-dot');
+        const label = document.getElementById('conn-label');
+        if (data.connected === false) {
+          dot.classList.add('offline');
+          label.textContent = 'Offline';
+        } else {
+          dot.classList.remove('offline');
+          label.textContent = 'Connected';
+        }
 
         updateCarUI(1, data.car1_status);
         updateCarUI(2, data.car2_status);
       } catch (e) {
-        console.error('Status poll failed:', e);
+        console.error('Poll failed:', e);
       }
     }
 
     async function sendCommand(cmd) {
-      addLog(`Sending command: ${cmd}`);
+      addLog(`Sending: ${cmd}`);
       try {
-        const res = await fetch('/api/command', {
+        const res  = await fetch('/api/command', {
           method: 'POST',
-          body: JSON.stringify({ command: cmd }),
+          body:   JSON.stringify({ command: cmd }),
         });
         const data = await res.json();
         if (data.error) {
-          addLog(`Error: ${data.error}`);
+          addLog(`Error: ${data.error}`, true);
         } else {
-          addLog(`Command accepted: ${cmd}`);
+          addLog(`Done: ${cmd}`);
         }
       } catch (e) {
-        addLog(`Failed to send command: ${e}`);
+        addLog(`Failed: ${e}`, true);
       }
     }
 
-    // Poll every second
     pollStatus();
     setInterval(pollStatus, 1000);
   </script>

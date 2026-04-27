@@ -11,6 +11,7 @@
 #   q      – Quit
 # =============================================================================
 
+import json
 import logging
 import os
 import select
@@ -21,6 +22,9 @@ import time
 import tty
 
 import src.config as config
+
+COMMAND_FILE = "/tmp/valet_cmd"
+STATUS_FILE  = "/tmp/valet_status.json"
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL, logging.INFO),
@@ -190,6 +194,17 @@ def run() -> None:
 
             # Navigate
             nav.tick(det)
+
+            # Write status for web UI
+            if tick % 5 == 0:
+                try:
+                    with open(STATUS_FILE, "w") as _sf:
+                        json.dump({
+                            "robot_state": nav.state.name,
+                            "mission":     nav.mission.name,
+                        }, _sf)
+                except Exception:
+                    pass
 
             # Print state periodically to terminal
             if tick % 30 == 0:

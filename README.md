@@ -30,10 +30,12 @@ Autonomous robot that retrieves toy cars from parking spots and delivers them to
 
 | Spot | Shape | Tape Color |
 |------|-------|------------|
-| Parking Spot 1 (right) | Square | Blue |
-| Parking Spot 2 (left) | Square | Red |
-| Robot Home (center) | Circle | Green |
-| Exit / Entrance (far right) | Triangle | Yellow |
+| Parking Spot 1 (PS1) | Square | Blue |
+| Parking Spot 2 (PS2) | Hexagon | Red |
+| Robot Home | Circle | Green |
+| Exit | Triangle | Yellow |
+
+Robot stops and lifts when it reaches the spot marker, stays lifted until EXIT marker, then lowers.
 
 ---
 
@@ -59,11 +61,35 @@ HOME → (black left) → PS2 branch (blue) → PS2
 
 ---
 
-## SSH Control UI
+## Running the Robot
 
-Connect via SSH then run:
+### Option A – Web UI (recommended)
+
+**On the Pi** — start the robot inside a tmux session named `valet`:
 
 ```bash
+tmux new-session -s valet
+cd ~/senior_design_final
+source .venv/bin/activate
+python -m src.main
+# Detach with Ctrl-B D  (session keeps running)
+```
+
+**On your laptop** — start the web server:
+
+```bash
+cd ui
+pip install flask
+python server.py --host <pi-ip> --user will
+# Open http://localhost:5000
+```
+
+The web UI sends commands by SSH-ing into the Pi and using `tmux send-keys` to inject keypresses into the `valet` session. The robot session must be running inside tmux for this to work.
+
+### Option B – SSH keyboard control
+
+```bash
+ssh will@<pi-ip>
 cd senior_design_final
 source .venv/bin/activate
 python -m src.main
@@ -107,15 +133,15 @@ Pin  2  ──── 5V  ──────┬──── Servo 1 VCC  (red)
 Pin  6  ──── GND ──────┬──── Servo 1 GND  (brown)
                         └──── Servo 2 GND  (brown)
 
-Pin 32  ──── GPIO 12 ───── Servo 1 Signal (orange)
+Pin 12  ──── GPIO 18 ───── Servo 1 Signal (orange)
 
-Pin 33  ──── GPIO 13 ───── Servo 2 Signal (orange)
+Pin 13  ──── GPIO 27 ───── Servo 2 Signal (orange)
 ```
 
 | FS90 | Signal Pin | GPIO |
 |------|-----------|------|
-| Servo 1 | Pin 32 | GPIO 12 |
-| Servo 2 | Pin 33 | GPIO 13 |
+| Servo 1 | Pin 12 | GPIO 18 |
+| Servo 2 | Pin 13 | GPIO 27 |
 
 Both share 5V (Pin 2) and GND (Pin 6).
 

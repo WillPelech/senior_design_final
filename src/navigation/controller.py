@@ -86,12 +86,14 @@ class NavigationController:
     # ------------------------------------------------------------------
 
     def start(self) -> None:
-        self._motors.lift_down()
+        if config.LIFT_ENABLED:
+            self._motors.lift_down()
         log.info("Robot ready. Press 1 (CAR1), 2 (CAR2), or SPACE to stop.")
 
     def shutdown(self) -> None:
         self._motors.stop()
-        self._motors.lift_down()
+        if config.LIFT_ENABLED:
+            self._motors.lift_down()
 
     @property
     def state(self) -> State:
@@ -197,10 +199,11 @@ class NavigationController:
     def _do_at_spot(self, det: DetectionResult) -> None:
         """Lift the car then transition to DELIVER."""
         self._motors.stop()
-        log.info("Lifting car...")
-        self._motors.lift_up()
-        time.sleep(config.SERVO_TRAVEL_TIME_S)
-        log.info("Car lifted. Navigating to EXIT.")
+        if config.LIFT_ENABLED:
+            log.info("Lifting car...")
+            self._motors.lift_up()
+            time.sleep(config.SERVO_TRAVEL_TIME_S)
+            log.info("Car lifted. Navigating to EXIT.")
         self._fork_passed = False
         self._steer_pid.reset()
         self._transition(State.DELIVER)
@@ -217,10 +220,11 @@ class NavigationController:
     def _do_at_exit(self, det: DetectionResult) -> None:
         """Lower car at exit then return home."""
         self._motors.stop()
-        log.info("Lowering car at EXIT...")
-        self._motors.lift_down()
-        time.sleep(config.SERVO_TRAVEL_TIME_S)
-        log.info("Car delivered. Returning home.")
+        if config.LIFT_ENABLED:
+            log.info("Lowering car at EXIT...")
+            self._motors.lift_down()
+            time.sleep(config.SERVO_TRAVEL_TIME_S)
+            log.info("Car delivered. Returning home.")
         self._steer_pid.reset()
         self._transition(State.RETURN)
 

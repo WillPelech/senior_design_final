@@ -21,6 +21,9 @@
 # Set True to skip all motor/servo/GPIO hardware init (camera-only testing)
 STUB_MOTORS = False
 
+# Set False to disable lift servos entirely (line-following only mode)
+LIFT_ENABLED = False
+
 
 # -----------------------------------------------------------------------------
 # 1. CAMERA
@@ -144,8 +147,8 @@ MOTOR_SETTLE_TIME_S = 0.15
 # -----------------------------------------------------------------------------
 
 # BCM GPIO pins for lift servos (two FS90 servos moving in sync)
-SERVO_GPIO_PIN   = 12   # BCM GPIO 12 — Physical Pin 32
-SERVO_GPIO_PIN_2 = 13   # BCM GPIO 13 — Physical Pin 33
+SERVO_GPIO_PIN   = 18   # Pin 12 on Pi header
+SERVO_GPIO_PIN_2 = 27   # Pin 13 on Pi header
 SERVO_USE_HAT_CHANNEL = False
 SERVO_HAT_CHANNEL     = 0
 
@@ -157,7 +160,7 @@ SERVO_PULSE_UP_US   = 1800   # Platform raised  (carrying car)
 SERVO_PULSE_MAX_SAFE_US = 1900
 
 # Time to wait for servo to complete travel (seconds)
-SERVO_TRAVEL_TIME_S = 0.8
+SERVO_TRAVEL_TIME_S = 0.1
 
 
 # -----------------------------------------------------------------------------

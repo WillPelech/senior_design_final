@@ -6,7 +6,7 @@
 #   - Blue fork tape (signals junction between PS1 and PS2 branches)
 #   - Colored stopping markers at each spot:
 #       PS1  = blue square
-#       PS2  = red square
+#       PS2  = red hexagon
 #       HOME = green circle
 #       EXIT = yellow triangle
 # =============================================================================
@@ -169,7 +169,7 @@ class ArucoDetector:
 
     def _detect_markers(self, hsv, annotated, result):
         result.at_ps1  = self._detect_blue_square(hsv, annotated)
-        result.at_ps2  = self._detect_red_square(hsv, annotated)
+        result.at_ps2  = self._detect_red_hexagon(hsv, annotated)
         result.at_home = self._detect_green_circle(hsv, annotated)
         result.at_exit = self._detect_yellow_triangle(hsv, annotated)
 
@@ -177,11 +177,11 @@ class ArucoDetector:
         mask = cv2.inRange(hsv, np.array(config.PS1_HSV_LOW), np.array(config.PS1_HSV_HIGH))
         return self._check_square(mask, annotated, "PS1", (255, 100, 0))
 
-    def _detect_red_square(self, hsv, annotated) -> bool:
+    def _detect_red_hexagon(self, hsv, annotated) -> bool:
         m1 = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW1), np.array(config.PS2_HSV_HIGH1))
         m2 = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW2), np.array(config.PS2_HSV_HIGH2))
         mask = cv2.bitwise_or(m1, m2)
-        return self._check_square(mask, annotated, "PS2", (0, 0, 255))
+        return self._check_hexagon(mask, annotated, "PS2", (0, 0, 255))
 
     def _detect_green_circle(self, hsv, annotated) -> bool:
         mask = cv2.inRange(hsv, np.array(config.HOME_HSV_LOW), np.array(config.HOME_HSV_HIGH))
@@ -226,6 +226,23 @@ class ArucoDetector:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _check_hexagon(self, mask, annotated, label, color) -> bool:
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return False
+        largest = max(contours, key=cv2.contourArea)
+        if cv2.contourArea(largest) < config.MIN_MARKER_AREA:
+            return False
+        approx = cv2.approxPolyDP(largest, 0.03 * cv2.arcLength(largest, True), True)
+        if not (5 <= len(approx) <= 7):   # 6-sided ±1 tolerance
+            return False
+        x, y, w, h = cv2.boundingRect(largest)
+        cv2.drawContours(annotated, [approx], -1, color, 2)
+        cv2.putText(annotated, label, (x, y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+        return True
 
     def _check_square(self, mask, annotated, label, color) -> bool:
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
