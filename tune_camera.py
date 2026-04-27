@@ -3,11 +3,11 @@ Camera tuning script — run on Pi with monitor connected.
 Shows live feed at a viewable size with HSV info overlay.
 
 Controls:
+  z/x   zoom out / zoom in (crops center region)
   +/-   increase/decrease LINE_THRESHOLD (black line detection)
-  w/s   increase/decrease green H max
-  a/d   increase/decrease green H min
+  a/d   increase/decrease green H min/max
   r/f   increase/decrease green S min
-  q     quit
+  q     quit and print final settings
 """
 
 import cv2
@@ -18,6 +18,7 @@ line_threshold = 160
 g_h_min, g_h_max = 35, 85
 g_s_min = 30
 g_v_min = 80
+zoom = 1.0          # 1.0 = full frame, 0.5 = center 50% of frame (zoomed out feel)
 
 DISPLAY_WIDTH  = 960
 DISPLAY_HEIGHT = 540
@@ -36,6 +37,14 @@ while True:
     if not ret:
         continue
 
+    h_orig, w_orig = frame.shape[:2]
+
+    # Apply zoom crop — zoom < 1.0 shows more of the frame (wider view)
+    crop_h = int(h_orig * zoom)
+    crop_w = int(w_orig * zoom)
+    y0 = (h_orig - crop_h) // 2
+    x0 = (w_orig - crop_w) // 2
+    frame = frame[y0:y0+crop_h, x0:x0+crop_w]
     h_orig, w_orig = frame.shape[:2]
 
     # Resize for display
@@ -91,10 +100,10 @@ while True:
 
     # --- HUD ---
     info = [
+        f"ZOOM={zoom:.2f}  (z=out  x=in)   Frame: {w_orig}x{h_orig}",
         f"LINE threshold={line_threshold}  found={'YES' if line_found else 'NO'}  (+/- to adjust)",
         f"GREEN H=[{g_h_min},{g_h_max}] S_min={g_s_min}  (a/d=H  r/f=Smin)",
         f"Center HSV: H={hsv_center[0]} S={hsv_center[1]} V={hsv_center[2]}",
-        f"Frame: {w_orig}x{h_orig}",
     ]
     for i, line in enumerate(info):
         cv2.putText(display, line, (10, 20 + i*20),
@@ -105,6 +114,10 @@ while True:
 
     if key == ord('q'):
         break
+    elif key == ord('z'):
+        zoom = max(0.2, zoom - 0.05)
+    elif key == ord('x'):
+        zoom = min(1.0, zoom + 0.05)
     elif key == ord('+') or key == ord('='):
         line_threshold = min(254, line_threshold + 5)
     elif key == ord('-'):
@@ -122,6 +135,7 @@ print(f"\nFinal settings — copy to src/config.py:")
 print(f"  LINE_THRESHOLD = {line_threshold}")
 print(f"  MARKER_HSV_LOW  = [{g_h_min}, {g_s_min}, {g_v_min}]")
 print(f"  MARKER_HSV_HIGH = [{g_h_max}, 255, 255]")
+print(f"\nZoom crop was {zoom:.2f} — physically mount camera higher to match this FOV naturally.")
 
 cap.release()
 cv2.destroyAllWindows()
