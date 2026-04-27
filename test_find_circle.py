@@ -94,8 +94,8 @@ try:
                     state = "DONE"
                 else:
                     correction = STEER_KP * x_err
-                    left  = max(-1.0, min(1.0, DRIVE_SPEED + correction))
-                    right = max(-1.0, min(1.0, DRIVE_SPEED - correction))
+                    left  = max(0.15, min(1.0, DRIVE_SPEED + correction))
+                    right = max(0.15, min(1.0, DRIVE_SPEED - correction))
                     motors.set_motors(left, right)
 
         else:
