@@ -46,7 +46,7 @@ FORCE_USB_CAMERA = True
 
 # Grayscale threshold to detect black tape (0–255). Lower = darker.
 # Increase if white floor is being detected as line; decrease if line is missed.
-LINE_THRESHOLD = 80
+LINE_THRESHOLD = 160
 
 # Row in the frame (pixels from top) used to sample the line position.
 # Use the bottom third of the frame for fastest response.
