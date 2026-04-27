@@ -68,14 +68,20 @@ class ArucoDetector:
     """
 
     def __init__(self) -> None:
-        self._cx = config.CAMERA_WIDTH / 2.0
+        self._cx = config.CAMERA_WIDTH / 2.0   # updated on first frame
         self._fork_counter = 0
+        self._frame_h = config.CAMERA_HEIGHT
+        self._frame_w = config.CAMERA_WIDTH
         log.info("LineDetector ready")
 
     def detect(self, frame: np.ndarray) -> DetectionResult:
         result = DetectionResult()
         if frame is None:
             return result
+
+        # Update center/dimensions from actual frame size
+        self._frame_h, self._frame_w = frame.shape[:2]
+        self._cx = self._frame_w / 2.0
 
         annotated = frame.copy()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -98,8 +104,8 @@ class ArucoDetector:
     # ------------------------------------------------------------------
 
     def _detect_line(self, gray, annotated, result):
-        """Find black tape line center at LINE_SAMPLE_ROW."""
-        row = config.LINE_SAMPLE_ROW
+        """Find black tape line center at 75% of actual frame height."""
+        row = int(self._frame_h * 0.75)
         if row >= gray.shape[0]:
             return
 
@@ -153,8 +159,8 @@ class ArucoDetector:
     # ------------------------------------------------------------------
 
     def _detect_blue_line(self, hsv, annotated, result):
-        """Find blue tape line center at LINE_SAMPLE_ROW (same row as black line)."""
-        row = config.LINE_SAMPLE_ROW
+        """Find blue tape line center at 75% of actual frame height."""
+        row = int(self._frame_h * 0.75)
         if row >= hsv.shape[0]:
             return
 
