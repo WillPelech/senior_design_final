@@ -18,8 +18,10 @@ import select
 import signal
 import sys
 import termios
+import threading
 import time
 import tty
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import src.config as config
 
@@ -43,6 +45,46 @@ try:
     _CV2_AVAILABLE = True
 except ImportError:
     _CV2_AVAILABLE = False
+
+# ---------------------------------------------------------------------------
+# MJPEG stream server (view at http://<pi-ip>:8080 in browser)
+# ---------------------------------------------------------------------------
+
+_stream_frame: list = [None]
+_stream_lock = threading.Lock()
+
+
+class _MjpegHandler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass  # silence HTTP access logs
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+        self.end_headers()
+        try:
+            while True:
+                with _stream_lock:
+                    frame = _stream_frame[0]
+                if frame is not None and _CV2_AVAILABLE:
+                    _, jpg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                    data = jpg.tobytes()
+                    self.wfile.write(
+                        b"--frame\r\nContent-Type: image/jpeg\r\n"
+                        + f"Content-Length: {len(data)}\r\n\r\n".encode()
+                        + data + b"\r\n"
+                    )
+                time.sleep(0.05)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+
+def _start_stream_server(port: int) -> None:
+    server = HTTPServer(("0.0.0.0", port), _MjpegHandler)
+    server.daemon_threads = True
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    log.info("MJPEG stream at http://0.0.0.0:%d  (open in browser)", port)
 
 
 # ---------------------------------------------------------------------------
@@ -144,6 +186,9 @@ def run() -> None:
     signal.signal(signal.SIGINT,  _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
 
+    if config.DEBUG_STREAM_VIDEO and _CV2_AVAILABLE:
+        _start_stream_server(config.DEBUG_STREAM_PORT)
+
     camera.start()
     log.info("Waiting for camera...")
     deadline = time.monotonic() + config.SAFETY_CAMERA_TIMEOUT_S
@@ -217,6 +262,12 @@ def run() -> None:
                       f"{'HOME' if det.at_home else ''}"
                       f"{'EXIT' if det.at_exit else ''}")
                 sys.stdout.flush()
+
+            # Push frame to MJPEG stream
+            if config.DEBUG_STREAM_VIDEO and _CV2_AVAILABLE:
+                display = det.annotated if det.annotated is not None else frame
+                with _stream_lock:
+                    _stream_frame[0] = display
 
             # Optional preview window
             if config.DEBUG_SHOW_PREVIEW and _CV2_AVAILABLE:
