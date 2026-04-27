@@ -30,30 +30,41 @@ log = logging.getLogger(__name__)
 class DetectionResult:
     """
     Result of one detection pass on a single frame.
+    Camera faces forward. Shapes are on walls/targets.
 
-    line_found:        True if black line is visible
-    line_x_error:      pixels from center (positive = line is RIGHT of center)
-    blue_line_found:   True if blue tape line is visible
-    blue_line_x_error: pixels from center for blue line
-    fork_detected:     True if blue fork tape area is large (junction)
-    at_ps1:            True if PS1 green square detected
-    at_ps2:            True if PS2 green hexagon detected
-    at_home:           True if HOME green circle detected
-    at_exit:           True if EXIT green triangle detected
-    annotated:         frame with detection overlays drawn
+    Each shape has: _found (bool), _x_error (px from center), _area (px²)
+    Shapes:
+      home  = green circle  (HOME)
+      ps1   = green square  (Parking Spot 1)
+      ps2   = green hexagon (Parking Spot 2)
+      exit  = green triangle (EXIT)
     """
-    line_found:        bool  = False
-    line_x_error:      float = 0.0
-    blue_line_found:   bool  = False
-    blue_line_x_error: float = 0.0
-    fork_detected:     bool  = False
-    at_ps1:            bool  = False
-    at_ps2:            bool  = False
-    at_home:           bool  = False
-    at_exit:           bool  = False
-    annotated:         Optional[np.ndarray] = None
+    home_found:   bool  = False
+    home_x_error: float = 0.0
+    home_area:    float = 0.0
 
-    # kept for interface compatibility with motor driver / telemetry
+    ps1_found:    bool  = False
+    ps1_x_error:  float = 0.0
+    ps1_area:     float = 0.0
+
+    ps2_found:    bool  = False
+    ps2_x_error:  float = 0.0
+    ps2_area:     float = 0.0
+
+    exit_found:   bool  = False
+    exit_x_error: float = 0.0
+    exit_area:    float = 0.0
+
+    annotated:    Optional[np.ndarray] = None
+
+    # legacy compat
+    at_ps1:    bool  = False
+    at_ps2:    bool  = False
+    at_home:   bool  = False
+    at_exit:   bool  = False
+    line_found: bool = False
+    line_x_error: float = 0.0
+    fork_detected: bool = False
     found_car:  bool  = False
     found_home: bool  = False
     distance:   float = 0.0
@@ -85,236 +96,86 @@ class ArucoDetector:
 
         annotated = frame.copy()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        self._detect_line(gray, annotated, result)
-        self._detect_blue_line(hsv, annotated, result)
-        self._detect_fork(hsv, annotated, result)
-        self._detect_markers(hsv, annotated, result)
+        self._detect_all_shapes(hsv, annotated, result)
 
         # keep legacy fields in sync
-        result.x_error    = result.line_x_error
-        result.found_home = result.at_home
+        result.at_home   = result.home_found
+        result.at_ps1    = result.ps1_found
+        result.at_ps2    = result.ps2_found
+        result.at_exit   = result.exit_found
+        result.found_home = result.home_found
 
         result.annotated = annotated
         return result
 
     # ------------------------------------------------------------------
-    # Line detection
+    # Shape detection (forward-facing camera, shapes on walls)
     # ------------------------------------------------------------------
 
-    def _detect_line(self, gray, annotated, result):
-        """Find black tape line center at 75% of actual frame height."""
-        row = int(self._frame_h * 0.75)
-        if row >= gray.shape[0]:
-            return
-
-        # Threshold: black tape = low value
-        _, thresh = cv2.threshold(gray, config.LINE_THRESHOLD, 255, cv2.THRESH_BINARY_INV)
-
-        # Sample a horizontal strip around the scan row
-        strip = thresh[max(0, row - 10):row + 10, :]
-        col_sum = np.sum(strip, axis=0)
-
-        # Find contiguous white (black tape) regions
-        line_pixels = np.where(col_sum > 0)[0]
-        if len(line_pixels) == 0:
-            return
-
-        # Group into contiguous segments
-        segments = []
-        seg_start = line_pixels[0]
-        prev = line_pixels[0]
-        for px in line_pixels[1:]:
-            if px - prev > 5:
-                segments.append((seg_start, prev))
-                seg_start = px
-            prev = px
-        segments.append((seg_start, prev))
-
-        # Pick widest segment within allowed width range
-        best = None
-        for seg in segments:
-            w = seg[1] - seg[0]
-            if config.LINE_MIN_WIDTH_PX <= w <= config.LINE_MAX_WIDTH_PX:
-                if best is None or w > (best[1] - best[0]):
-                    best = seg
-
-        if best is None:
-            return
-
-        line_cx = (best[0] + best[1]) / 2.0
-        result.line_found   = True
-        result.line_x_error = line_cx - self._cx
-
-        # Annotate
-        cv2.line(annotated, (0, row), (annotated.shape[1], row), (0, 255, 255), 1)
-        cv2.circle(annotated, (int(line_cx), row), 6, (0, 255, 0), -1)
-        cv2.line(annotated, (int(self._cx), row - 10), (int(self._cx), row + 10), (255, 255, 255), 1)
-        cv2.putText(annotated, f"line x_err={result.line_x_error:+.0f}px",
-                    (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-
-    # ------------------------------------------------------------------
-    # Blue line detection (Car 1 follows this after pickup)
-    # ------------------------------------------------------------------
-
-    def _detect_blue_line(self, hsv, annotated, result):
-        """Find blue tape line center at 75% of actual frame height."""
-        row = int(self._frame_h * 0.75)
-        if row >= hsv.shape[0]:
-            return
-
-        mask = cv2.inRange(hsv, np.array(config.BLUE_HSV_LOW), np.array(config.BLUE_HSV_HIGH))
-        strip = mask[max(0, row - 10):row + 10, :]
-        col_sum = np.sum(strip, axis=0)
-
-        line_pixels = np.where(col_sum > 0)[0]
-        if len(line_pixels) == 0:
-            return
-
-        segments = []
-        seg_start = line_pixels[0]
-        prev = line_pixels[0]
-        for px in line_pixels[1:]:
-            if px - prev > 5:
-                segments.append((seg_start, prev))
-                seg_start = px
-            prev = px
-        segments.append((seg_start, prev))
-
-        best = None
-        for seg in segments:
-            w = seg[1] - seg[0]
-            if w >= config.BLUE_LINE_MIN_WIDTH_PX:
-                if best is None or w > (best[1] - best[0]):
-                    best = seg
-
-        if best is None:
-            return
-
-        line_cx = (best[0] + best[1]) / 2.0
-        result.blue_line_found   = True
-        result.blue_line_x_error = line_cx - self._cx
-
-        cv2.circle(annotated, (int(line_cx), row), 6, (255, 128, 0), -1)
-        cv2.putText(annotated, f"blue x_err={result.blue_line_x_error:+.0f}px",
-                    (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 128, 0), 1)
-
-    # ------------------------------------------------------------------
-    # Fork detection (blue tape junction)
-    # ------------------------------------------------------------------
-
-    def _detect_fork(self, hsv, annotated, result):
-        """Detect blue tape indicating the PS1/PS2 fork."""
-        mask = cv2.inRange(hsv, np.array(config.BLUE_HSV_LOW), np.array(config.BLUE_HSV_HIGH))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
-
-        area = cv2.countNonZero(mask)
-        if area >= config.FORK_MIN_AREA_PX:
-            self._fork_counter += 1
-        else:
-            self._fork_counter = max(0, self._fork_counter - 1)
-
-        if self._fork_counter >= config.FORK_CONFIRM_FRAMES:
-            result.fork_detected = True
-            cv2.putText(annotated, "FORK DETECTED", (10, 45),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 128, 0), 2)
-
-    # ------------------------------------------------------------------
-    # Stopping marker detection
-    # ------------------------------------------------------------------
-
-    def _detect_markers(self, hsv, annotated, result):
-        result.at_ps1  = self._detect_blue_square(hsv, annotated)
-        result.at_ps2  = self._detect_red_hexagon(hsv, annotated)
-        result.at_home = self._detect_green_circle(hsv, annotated)
-        result.at_exit = self._detect_yellow_triangle(hsv, annotated)
-
-    def _detect_blue_square(self, hsv, annotated) -> bool:
-        mask = cv2.inRange(hsv, np.array(config.PS1_HSV_LOW), np.array(config.PS1_HSV_HIGH))
-        return self._check_square(mask, annotated, "PS1", (0, 200, 0))
-
-    def _detect_red_hexagon(self, hsv, annotated) -> bool:
-        mask = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW), np.array(config.PS2_HSV_HIGH))
-        return self._check_hexagon(mask, annotated, "PS2", (0, 180, 0))
-
-    def _detect_green_circle(self, hsv, annotated) -> bool:
-        mask = cv2.inRange(hsv, np.array(config.MARKER_HSV_LOW), np.array(config.MARKER_HSV_HIGH))
+    def _detect_all_shapes(self, hsv, annotated, result):
+        mask = cv2.inRange(hsv,
+                           np.array(config.MARKER_HSV_LOW),
+                           np.array(config.MARKER_HSV_HIGH))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return False
-        largest = max(contours, key=cv2.contourArea)
-        area = cv2.contourArea(largest)
-        if area < config.MIN_MARKER_AREA:
-            return False
-        perimeter = cv2.arcLength(largest, True)
-        if perimeter == 0:
-            return False
-        circularity = 4 * np.pi * area / (perimeter ** 2)
-        if circularity < config.CIRCLE_CIRCULARITY_MIN:
-            return False
-        (cx, cy), r = cv2.minEnclosingCircle(largest)
-        cv2.circle(annotated, (int(cx), int(cy)), int(r), (0, 255, 0), 2)
-        cv2.putText(annotated, "HOME", (int(cx) - 20, int(cy) - int(r) - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-        return True
 
-    def _detect_yellow_triangle(self, hsv, annotated) -> bool:
-        mask = cv2.inRange(hsv, np.array(config.MARKER_HSV_LOW), np.array(config.MARKER_HSV_HIGH))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return False
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) < config.MIN_MARKER_AREA:
-            return False
-        approx = cv2.approxPolyDP(largest, 0.04 * cv2.arcLength(largest, True), True)
-        if len(approx) != 3:
-            return False
-        x, y, w, h = cv2.boundingRect(largest)
-        cv2.drawContours(annotated, [approx], -1, (0, 255, 255), 2)
-        cv2.putText(annotated, "EXIT", (x, y - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-        return True
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < config.SHAPE_MIN_AREA:
+                continue
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
+            perimeter = cv2.arcLength(cnt, True)
+            if perimeter == 0:
+                continue
 
-    def _check_hexagon(self, mask, annotated, label, color) -> bool:
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return False
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) < config.MIN_MARKER_AREA:
-            return False
-        approx = cv2.approxPolyDP(largest, 0.03 * cv2.arcLength(largest, True), True)
-        if not (5 <= len(approx) <= 7):   # 6-sided ±1 tolerance
-            return False
-        x, y, w, h = cv2.boundingRect(largest)
-        cv2.drawContours(annotated, [approx], -1, color, 2)
-        cv2.putText(annotated, label, (x, y - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-        return True
+            approx   = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
+            sides    = len(approx)
+            circularity = 4 * np.pi * area / (perimeter ** 2)
 
-    def _check_square(self, mask, annotated, label, color) -> bool:
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return False
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) < config.MIN_MARKER_AREA:
-            return False
-        approx = cv2.approxPolyDP(largest, 0.04 * cv2.arcLength(largest, True), True)
-        if len(approx) != 4:
-            return False
-        x, y, w, h = cv2.boundingRect(largest)
-        aspect = w / h if h > 0 else 0
-        if not (config.SQUARE_ASPECT_MIN < aspect < config.SQUARE_ASPECT_MAX):
-            return False
-        cv2.rectangle(annotated, (x, y), (x + w, y + h), color, 2)
-        cv2.putText(annotated, label, (x, y - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-        return True
+            x, y, w, h = cv2.boundingRect(cnt)
+            cx_shape  = x + w / 2.0
+            x_err     = cx_shape - self._cx
+
+            # Circle  — high circularity
+            if circularity >= config.CIRCLE_CIRCULARITY_MIN:
+                if area > result.home_area:
+                    result.home_found   = True
+                    result.home_x_error = x_err
+                    result.home_area    = area
+                (ecx, ecy), r = cv2.minEnclosingCircle(cnt)
+                cv2.circle(annotated, (int(ecx), int(ecy)), int(r), (0, 255, 0), 2)
+                cv2.putText(annotated, f"HOME err={x_err:+.0f}",
+                            (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+            # Triangle — 3 sides
+            elif sides == 3:
+                if area > result.exit_area:
+                    result.exit_found   = True
+                    result.exit_x_error = x_err
+                    result.exit_area    = area
+                cv2.drawContours(annotated, [approx], -1, (0, 255, 255), 2)
+                cv2.putText(annotated, f"EXIT err={x_err:+.0f}",
+                            (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+
+            # Square — 4 sides, roughly equal aspect
+            elif sides == 4:
+                aspect = w / h if h > 0 else 0
+                if config.SQUARE_ASPECT_MIN < aspect < config.SQUARE_ASPECT_MAX:
+                    if area > result.ps1_area:
+                        result.ps1_found   = True
+                        result.ps1_x_error = x_err
+                        result.ps1_area    = area
+                    cv2.rectangle(annotated, (x, y), (x + w, y + h), (0, 200, 255), 2)
+                    cv2.putText(annotated, f"PS1 err={x_err:+.0f}",
+                                (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
+
+            # Hexagon — 5-7 sides
+            elif 5 <= sides <= 7:
+                if area > result.ps2_area:
+                    result.ps2_found   = True
+                    result.ps2_x_error = x_err
+                    result.ps2_area    = area
+                cv2.drawContours(annotated, [approx], -1, (255, 100, 0), 2)
+                cv2.putText(annotated, f"PS2 err={x_err:+.0f}",
+                            (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 100, 0), 1)

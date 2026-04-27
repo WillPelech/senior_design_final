@@ -74,7 +74,6 @@ class NavigationController:
         self._mission = Mission.NONE
         self._state_entry_time = time.monotonic()
         self._tick_count = 0
-        self._fork_passed = False
 
         self._steer_pid = PID(
             kp=config.STEER_KP, ki=config.STEER_KI, kd=config.STEER_KD,
@@ -109,13 +108,13 @@ class NavigationController:
         if key == '1' and self._state == State.IDLE:
             log.info("Mission CAR1 started")
             self._mission = Mission.CAR1
-            self._fork_passed = False
+
             self._steer_pid.reset()
             self._transition(State.NAVIGATE)
         elif key == '2' and self._state == State.IDLE:
             log.info("Mission CAR2 started")
             self._mission = Mission.CAR2
-            self._fork_passed = False
+
             self._steer_pid.reset()
             self._transition(State.NAVIGATE)
         elif key == 'h':
@@ -181,102 +180,86 @@ class NavigationController:
     # ------------------------------------------------------------------
 
     def _do_navigate(self, det: DetectionResult) -> None:
-        """Follow black line toward target parking spot."""
-        # Check if we've reached the fork
-        if det.fork_detected and not self._fork_passed:
-            log.info("Fork detected")
-            self._fork_passed = True
-            # CAR1 → blue branch (continue following blue tape)
-            # CAR2 → black branch (ignore blue, keep on black)
-            # Both cases just continue line following — the tape layout guides the robot
-
-        # Check if we've arrived at the target spot
-        if self._mission == Mission.CAR1 and det.at_ps1:
-            log.info("Arrived at PS1")
+        """Seek target parking spot shape."""
+        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
+        if self._seek_shape(det, target):
+            log.info("Arrived at %s", target.upper())
             self._motors.stop()
             self._transition(State.AT_SPOT)
-            return
-        if self._mission == Mission.CAR2 and det.at_ps2:
-            log.info("Arrived at PS2")
-            self._motors.stop()
-            self._transition(State.AT_SPOT)
-            return
-
-        self._follow_line(det, config.MOTOR_BASE_SPEED)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift the car then transition to DELIVER."""
+        """Lift the car then seek EXIT."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
             time.sleep(config.SERVO_TRAVEL_TIME_S)
-            log.info("Car lifted. Navigating to EXIT.")
-        self._fork_passed = False
+            log.info("Car lifted. Seeking EXIT.")
         self._steer_pid.reset()
         self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Follow line to EXIT. CAR1 uses blue line, CAR2 uses black line."""
-        if det.at_exit:
+        """Seek EXIT shape."""
+        if self._seek_shape(det, 'exit'):
             log.info("Arrived at EXIT")
             self._motors.stop()
             self._transition(State.AT_EXIT)
-            return
-        use_blue = (self._mission == Mission.CAR1)
-        self._follow_line(det, config.MOTOR_BASE_SPEED, blue=use_blue)
 
     def _do_at_exit(self, det: DetectionResult) -> None:
-        """Lower car at exit then return home."""
+        """Lower car then seek HOME."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lowering car at EXIT...")
             self._motors.lift_down()
             time.sleep(config.SERVO_TRAVEL_TIME_S)
-            log.info("Car delivered. Returning home.")
+            log.info("Car delivered. Seeking HOME.")
         self._steer_pid.reset()
         self._transition(State.RETURN)
 
     def _do_test(self, det: DetectionResult) -> None:
-        """Follow black line until any green shape is detected, then stop."""
-        if det.at_ps1 or det.at_ps2 or det.at_home or det.at_exit:
-            log.info("TEST: green shape detected — stopping")
+        """Seek HOME circle as a simple test."""
+        if self._seek_shape(det, 'home'):
+            log.info("TEST: reached HOME — stopping")
             self._motors.stop()
             self._transition(State.DONE)
-            return
-        self._follow_line(det, config.MOTOR_BASE_SPEED)
 
     def _do_return(self, det: DetectionResult) -> None:
-        """Follow line back to HOME."""
-        if det.at_home:
+        """Seek HOME shape to complete mission."""
+        if self._seek_shape(det, 'home'):
             log.info("Home reached. Mission complete.")
             self._motors.stop()
             self._mission = Mission.NONE
             self._transition(State.DONE)
-            return
-        self._follow_line(det, config.MOTOR_BASE_SPEED)
 
     # ------------------------------------------------------------------
-    # Line following
+    # Shape seeking (replaces line following)
     # ------------------------------------------------------------------
 
-    def _follow_line(self, det: DetectionResult, base_speed: float, blue: bool = False) -> None:
-        if blue:
-            found = det.blue_line_found
-            error = det.blue_line_x_error
-        else:
-            found = det.line_found
-            error = det.line_x_error
+    def _seek_shape(self, det: DetectionResult, shape: str) -> bool:
+        """
+        Spin to search for shape, drive toward it when found.
+        Returns True when close enough (area >= SHAPE_CLOSE_AREA).
+        shape: 'home' | 'ps1' | 'ps2' | 'exit'
+        """
+        found = getattr(det, f'{shape}_found')
+        x_err = getattr(det, f'{shape}_x_error')
+        area  = getattr(det, f'{shape}_area')
 
         if not found:
-            # Line lost – slow creep forward hoping to reacquire
-            self._motors.forward(config.MOTOR_CREEP_SPEED)
-            return
+            # Spin slowly to search
+            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED,
+                                    -config.MOTOR_SEARCH_SPIN_SPEED)
+            return False
 
-        correction = self._steer_pid.compute(error)
-        left  = self._clamp(base_speed + correction)
-        right = self._clamp(base_speed - correction)
+        if area >= config.SHAPE_CLOSE_AREA:
+            return True
+
+        # Drive toward shape with steering correction
+        correction = self._steer_pid.compute(x_err)
+        left  = self._clamp(config.MOTOR_BASE_SPEED + correction, lo=0.15)
+        right = self._clamp(config.MOTOR_BASE_SPEED - correction, lo=0.15)
         self._motors.set_motors(left, right)
+        return False
 
     # ------------------------------------------------------------------
     # Helpers
@@ -296,5 +279,5 @@ class NavigationController:
         self._steer_pid.kd = config.STEER_KD
 
     @staticmethod
-    def _clamp(v: float) -> float:
-        return max(-config.MOTOR_MAX_SPEED, min(config.MOTOR_MAX_SPEED, v))
+    def _clamp(v: float, lo: float = -config.MOTOR_MAX_SPEED) -> float:
+        return max(lo, min(config.MOTOR_MAX_SPEED, v))

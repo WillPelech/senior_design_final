@@ -108,9 +108,9 @@ CIRCLE_CIRCULARITY_MIN = 0.65
 # 4. NAVIGATION / PID
 # -----------------------------------------------------------------------------
 
-# Line-following steering PID
+# Shape-seeking steering PID
 # Error unit: pixels of lateral offset from frame center
-STEER_KP = 0.003   # Proportional – increase if slow to center
+STEER_KP = 0.005   # Proportional – increase if slow to center
 STEER_KI = 0.0001  # Integral     – increase if steady-state drift
 STEER_KD = 0.001   # Derivative   – increase if oscillating
 
@@ -119,8 +119,10 @@ STEER_I_MAX = 0.3
 # PID loop tick rate
 PID_DT = 0.033  # ~30 Hz
 
-# x-error (pixels) below which robot is considered centered on line
-LINE_CENTER_THRESHOLD_PX = 20
+# Shape seek parameters
+SHAPE_MIN_AREA   = 3000   # minimum px² to consider a detection valid
+SHAPE_CLOSE_AREA = 40000  # px² — stop and act when shape this large in frame
+SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to drive straight
 
 
 # -----------------------------------------------------------------------------
