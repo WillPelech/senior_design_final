@@ -14,8 +14,8 @@ from src.motors.driver import MotorDriver
 
 # ── Tunable ──────────────────────────────────────────────────────────────────
 SPIN_SPEED      = 0.15   # motor speed while searching
-DRIVE_SPEED     = 0.20   # motor speed while approaching
-STEER_KP        = 0.003  # proportional steering gain
+DRIVE_SPEED     = 0.25   # motor speed while approaching
+STEER_KP        = 0.01   # proportional steering gain
 CLOSE_AREA      = 40000  # stop when green blob area exceeds this (px²)
 
 GREEN_HSV_LOW   = np.array([35,  30,  80])
@@ -97,6 +97,7 @@ try:
                     left  = max(0.15, min(1.0, DRIVE_SPEED + correction))
                     right = max(0.15, min(1.0, DRIVE_SPEED - correction))
                     motors.set_motors(left, right)
+                    print(f"  APPROACH err={x_err:+.0f} L={left:.2f} R={right:.2f} area={int(best_area)}")
 
         else:
             if state == "APPROACH":
