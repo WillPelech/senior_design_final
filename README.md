@@ -7,35 +7,45 @@ Autonomous robot that retrieves toy cars from parking spots and delivers them to
 ## Track Layout
 
 ```
-  (Red Square)                        (Blue Square)
-     PS2                                  PS1
-      │                                    │
-      │ black tape                         │ blue tape
-      │                                    │
-      └──────────────┬─────────────────────┘
-                     │ fork
-                     │ black tape
-                     │
-   (Green Circle)────┴────────────────(Yellow Triangle)
-       HOME          black tape            EXIT
+  (Green Hexagon)                   (Green Square)
+      PS2                               PS1
+       │                                 │
+       │ black tape                      │ blue tape
+       │                                 │
+       └──────────────┬──────────────────┘
+                      │ fork (black + blue junction)
+                      │ black tape
+                      │
+  (Green Circle) ─────┴──────────────── (Green Triangle)
+      HOME             black tape            EXIT
 ```
+
 ### Tape Color Key
 
 | Tape Color | Purpose |
 |------------|---------|
-| Black | Main aisle — robot follows this to travel left/right |
-| Blue | Branch lines — splits off black to enter/exit each car spot |
+| Black | Main aisle — robot follows by default |
+| Blue | Branch to PS1 — also used by Car 1 after pickup to reach EXIT |
 
-### Stopping Markers (colored electrical tape shapes on white floor)
+### Stopping Markers (green electrical tape shapes on floor)
 
-| Spot | Shape | Tape Color |
-|------|-------|------------|
-| Parking Spot 1 (PS1) | Square | Blue |
-| Parking Spot 2 (PS2) | Hexagon | Red |
-| Robot Home | Circle | Green |
-| Exit | Triangle | Yellow |
+All markers are **green tape**. Shape determines the spot.
 
-Robot stops and lifts when it reaches the spot marker, stays lifted until EXIT marker, then lowers.
+| Spot | Shape | Notes |
+|------|-------|-------|
+| Parking Spot 1 (PS1) | Square (4 sides) | Car 1 stops here |
+| Parking Spot 2 (PS2) | Hexagon (6 sides) | Car 2 stops here |
+| Home | Circle | Mission complete |
+| Exit | Triangle (3 sides) | Car is dropped off here |
+
+### Routing After Pickup
+
+| Mission | Line followed to EXIT |
+|---------|-----------------------|
+| Car 1   | Blue tape |
+| Car 2   | Black tape |
+
+Robot lifts when it sees its target shape, stays lifted until EXIT triangle, then lowers.
 
 ---
 

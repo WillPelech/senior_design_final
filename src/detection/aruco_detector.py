@@ -31,23 +31,27 @@ class DetectionResult:
     """
     Result of one detection pass on a single frame.
 
-    line_found:   True if black line is visible
-    line_x_error: pixels from center (positive = line is RIGHT of center)
-    fork_detected: True if blue fork tape is visible
-    at_ps1:       True if PS1 blue square marker detected
-    at_ps2:       True if PS2 red square marker detected
-    at_home:      True if HOME green circle marker detected
-    at_exit:      True if EXIT yellow triangle marker detected
-    annotated:    frame with detection overlays drawn
+    line_found:        True if black line is visible
+    line_x_error:      pixels from center (positive = line is RIGHT of center)
+    blue_line_found:   True if blue tape line is visible
+    blue_line_x_error: pixels from center for blue line
+    fork_detected:     True if blue fork tape area is large (junction)
+    at_ps1:            True if PS1 green square detected
+    at_ps2:            True if PS2 green hexagon detected
+    at_home:           True if HOME green circle detected
+    at_exit:           True if EXIT green triangle detected
+    annotated:         frame with detection overlays drawn
     """
-    line_found:    bool  = False
-    line_x_error:  float = 0.0
-    fork_detected: bool  = False
-    at_ps1:        bool  = False
-    at_ps2:        bool  = False
-    at_home:       bool  = False
-    at_exit:       bool  = False
-    annotated:     Optional[np.ndarray] = None
+    line_found:        bool  = False
+    line_x_error:      float = 0.0
+    blue_line_found:   bool  = False
+    blue_line_x_error: float = 0.0
+    fork_detected:     bool  = False
+    at_ps1:            bool  = False
+    at_ps2:            bool  = False
+    at_home:           bool  = False
+    at_exit:           bool  = False
+    annotated:         Optional[np.ndarray] = None
 
     # kept for interface compatibility with motor driver / telemetry
     found_car:  bool  = False
@@ -78,6 +82,7 @@ class ArucoDetector:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         self._detect_line(gray, annotated, result)
+        self._detect_blue_line(hsv, annotated, result)
         self._detect_fork(hsv, annotated, result)
         self._detect_markers(hsv, annotated, result)
 
@@ -144,6 +149,52 @@ class ArucoDetector:
                     (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
     # ------------------------------------------------------------------
+    # Blue line detection (Car 1 follows this after pickup)
+    # ------------------------------------------------------------------
+
+    def _detect_blue_line(self, hsv, annotated, result):
+        """Find blue tape line center at LINE_SAMPLE_ROW (same row as black line)."""
+        row = config.LINE_SAMPLE_ROW
+        if row >= hsv.shape[0]:
+            return
+
+        mask = cv2.inRange(hsv, np.array(config.BLUE_HSV_LOW), np.array(config.BLUE_HSV_HIGH))
+        strip = mask[max(0, row - 10):row + 10, :]
+        col_sum = np.sum(strip, axis=0)
+
+        line_pixels = np.where(col_sum > 0)[0]
+        if len(line_pixels) == 0:
+            return
+
+        segments = []
+        seg_start = line_pixels[0]
+        prev = line_pixels[0]
+        for px in line_pixels[1:]:
+            if px - prev > 5:
+                segments.append((seg_start, prev))
+                seg_start = px
+            prev = px
+        segments.append((seg_start, prev))
+
+        best = None
+        for seg in segments:
+            w = seg[1] - seg[0]
+            if w >= config.BLUE_LINE_MIN_WIDTH_PX:
+                if best is None or w > (best[1] - best[0]):
+                    best = seg
+
+        if best is None:
+            return
+
+        line_cx = (best[0] + best[1]) / 2.0
+        result.blue_line_found   = True
+        result.blue_line_x_error = line_cx - self._cx
+
+        cv2.circle(annotated, (int(line_cx), row), 6, (255, 128, 0), -1)
+        cv2.putText(annotated, f"blue x_err={result.blue_line_x_error:+.0f}px",
+                    (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 128, 0), 1)
+
+    # ------------------------------------------------------------------
     # Fork detection (blue tape junction)
     # ------------------------------------------------------------------
 
@@ -175,16 +226,14 @@ class ArucoDetector:
 
     def _detect_blue_square(self, hsv, annotated) -> bool:
         mask = cv2.inRange(hsv, np.array(config.PS1_HSV_LOW), np.array(config.PS1_HSV_HIGH))
-        return self._check_square(mask, annotated, "PS1", (255, 100, 0))
+        return self._check_square(mask, annotated, "PS1", (0, 200, 0))
 
     def _detect_red_hexagon(self, hsv, annotated) -> bool:
-        m1 = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW1), np.array(config.PS2_HSV_HIGH1))
-        m2 = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW2), np.array(config.PS2_HSV_HIGH2))
-        mask = cv2.bitwise_or(m1, m2)
-        return self._check_hexagon(mask, annotated, "PS2", (0, 0, 255))
+        mask = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW), np.array(config.PS2_HSV_HIGH))
+        return self._check_hexagon(mask, annotated, "PS2", (0, 180, 0))
 
     def _detect_green_circle(self, hsv, annotated) -> bool:
-        mask = cv2.inRange(hsv, np.array(config.HOME_HSV_LOW), np.array(config.HOME_HSV_HIGH))
+        mask = cv2.inRange(hsv, np.array(config.MARKER_HSV_LOW), np.array(config.MARKER_HSV_HIGH))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
@@ -206,7 +255,7 @@ class ArucoDetector:
         return True
 
     def _detect_yellow_triangle(self, hsv, annotated) -> bool:
-        mask = cv2.inRange(hsv, np.array(config.EXIT_HSV_LOW), np.array(config.EXIT_HSV_HIGH))
+        mask = cv2.inRange(hsv, np.array(config.MARKER_HSV_LOW), np.array(config.MARKER_HSV_HIGH))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:

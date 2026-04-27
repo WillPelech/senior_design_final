@@ -58,15 +58,18 @@ LINE_MIN_WIDTH_PX = 20
 # Maximum width of the detected line in pixels (filters out large dark patches).
 LINE_MAX_WIDTH_PX = 200
 
-# HSV range for detecting blue fork tape
+# HSV range for blue tape (branch lines + fork junction)
 BLUE_HSV_LOW  = [100, 80, 50]
 BLUE_HSV_HIGH = [130, 255, 255]
 
-# Minimum blue pixel area to confirm fork detection
+# Minimum blue pixel area to confirm fork/branch line detection
 FORK_MIN_AREA_PX = 300
 
-# Number of consecutive frames fork must be detected before acting on it
+# Number of consecutive frames blue line must be detected before acting on it
 FORK_CONFIRM_FRAMES = 5
+
+# Minimum pixel count of blue line strip to use for steering (same HSV as fork)
+BLUE_LINE_MIN_WIDTH_PX = 15
 
 
 # -----------------------------------------------------------------------------
@@ -77,23 +80,20 @@ FORK_CONFIRM_FRAMES = 5
 # Minimum contour area to consider a marker valid (filters noise)
 MIN_MARKER_AREA = 800
 
-# --- PS1 marker: Blue square ---
-PS1_HSV_LOW  = [100, 80, 50]
-PS1_HSV_HIGH = [130, 255, 255]
+# All stopping markers are GREEN shapes (circle, square, hexagon, triangle)
+# Differentiated by shape, not color
+MARKER_HSV_LOW  = [40,  80,  50]
+MARKER_HSV_HIGH = [80,  255, 255]
 
-# --- PS2 marker: Red square ---
-PS2_HSV_LOW1  = [0,   80,  50]
-PS2_HSV_HIGH1 = [10,  255, 255]
-PS2_HSV_LOW2  = [170, 80,  50]
-PS2_HSV_HIGH2 = [180, 255, 255]
-
-# --- HOME marker: Green circle ---
-HOME_HSV_LOW  = [40,  80,  50]
-HOME_HSV_HIGH = [80,  255, 255]
-
-# --- EXIT marker: Yellow triangle ---
-EXIT_HSV_LOW  = [20,  80,  50]
-EXIT_HSV_HIGH = [35,  255, 255]
+# Convenience aliases (same range, kept for readability)
+PS1_HSV_LOW   = MARKER_HSV_LOW    # green square
+PS1_HSV_HIGH  = MARKER_HSV_HIGH
+PS2_HSV_LOW   = MARKER_HSV_LOW    # green hexagon
+PS2_HSV_HIGH  = MARKER_HSV_HIGH
+HOME_HSV_LOW  = MARKER_HSV_LOW    # green circle
+HOME_HSV_HIGH = MARKER_HSV_HIGH
+EXIT_HSV_LOW  = MARKER_HSV_LOW    # green triangle
+EXIT_HSV_HIGH = MARKER_HSV_HIGH
 
 # Square aspect ratio tolerance (width/height must be within this range)
 SQUARE_ASPECT_MIN = 0.6

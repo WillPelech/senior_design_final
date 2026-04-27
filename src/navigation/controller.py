@@ -209,13 +209,14 @@ class NavigationController:
         self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Follow line to EXIT."""
+        """Follow line to EXIT. CAR1 uses blue line, CAR2 uses black line."""
         if det.at_exit:
             log.info("Arrived at EXIT")
             self._motors.stop()
             self._transition(State.AT_EXIT)
             return
-        self._follow_line(det, config.MOTOR_BASE_SPEED)
+        use_blue = (self._mission == Mission.CAR1)
+        self._follow_line(det, config.MOTOR_BASE_SPEED, blue=use_blue)
 
     def _do_at_exit(self, det: DetectionResult) -> None:
         """Lower car at exit then return home."""
@@ -242,13 +243,20 @@ class NavigationController:
     # Line following
     # ------------------------------------------------------------------
 
-    def _follow_line(self, det: DetectionResult, base_speed: float) -> None:
-        if not det.line_found:
+    def _follow_line(self, det: DetectionResult, base_speed: float, blue: bool = False) -> None:
+        if blue:
+            found = det.blue_line_found
+            error = det.blue_line_x_error
+        else:
+            found = det.line_found
+            error = det.line_x_error
+
+        if not found:
             # Line lost – slow creep forward hoping to reacquire
             self._motors.forward(config.MOTOR_CREEP_SPEED)
             return
 
-        correction = self._steer_pid.compute(det.line_x_error)
+        correction = self._steer_pid.compute(error)
         left  = self._clamp(base_speed + correction)
         right = self._clamp(base_speed - correction)
         self._motors.set_motors(left, right)
