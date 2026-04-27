@@ -83,8 +83,8 @@ MIN_MARKER_AREA = 8000
 
 # All stopping markers are GREEN shapes (circle, square, hexagon, triangle)
 # Differentiated by shape, not color
-MARKER_HSV_LOW  = [40,  80,  50]
-MARKER_HSV_HIGH = [80,  255, 255]
+MARKER_HSV_LOW  = [35,  30,  80]
+MARKER_HSV_HIGH = [85,  255, 255]
 
 # Convenience aliases (same range, kept for readability)
 PS1_HSV_LOW   = MARKER_HSV_LOW    # green square
