@@ -170,6 +170,8 @@ class CameraStream:
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAMERA_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_HEIGHT)
         cap.set(cv2.CAP_PROP_FPS, config.CAMERA_FPS)
+        cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)   # disable autofocus
+        cap.set(cv2.CAP_PROP_FOCUS, 0)        # set focus to infinity
 
         if not cap.isOpened():
             log.error("USB camera (index %d) failed to open – falling back to stub", config.USB_CAMERA_INDEX)
