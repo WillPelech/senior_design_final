@@ -13,8 +13,8 @@ sys.path.insert(0, '.')
 from src.motors.driver import MotorDriver
 
 # ── Tunable ──────────────────────────────────────────────────────────────────
-SPIN_SPEED      = 0.25   # motor speed while searching
-DRIVE_SPEED     = 0.30   # motor speed while approaching
+SPIN_SPEED      = 0.15   # motor speed while searching
+DRIVE_SPEED     = 0.20   # motor speed while approaching
 STEER_KP        = 0.003  # proportional steering gain
 CLOSE_AREA      = 40000  # stop when green blob area exceeds this (px²)
 
