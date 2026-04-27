@@ -78,7 +78,8 @@ BLUE_LINE_MIN_WIDTH_PX = 15
 # -----------------------------------------------------------------------------
 
 # Minimum contour area to consider a marker valid (filters noise)
-MIN_MARKER_AREA = 800
+# Shapes are flush with the downward camera so they fill a large portion of frame
+MIN_MARKER_AREA = 8000
 
 # All stopping markers are GREEN shapes (circle, square, hexagon, triangle)
 # Differentiated by shape, not color
