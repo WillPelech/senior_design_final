@@ -37,6 +37,7 @@ class State(Enum):
     DELIVER  = auto()
     AT_EXIT  = auto()
     RETURN   = auto()
+    TEST     = auto()   # follow line until any green shape
     DONE     = auto()
     ESTOP    = auto()
 
@@ -125,6 +126,10 @@ class NavigationController:
             log.warning("ESTOP commanded")
             self._motors.brake()
             self._transition(State.ESTOP)
+        elif key == 't':
+            log.info("TEST: follow line until any green shape")
+            self._steer_pid.reset()
+            self._transition(State.TEST)
         elif key == 'r':
             log.info("Resetting to IDLE")
             self._motors.stop()
@@ -151,6 +156,9 @@ class NavigationController:
 
         elif self._state == State.RETURN:
             self._do_return(det)
+
+        elif self._state == State.TEST:
+            self._do_test(det)
 
         elif self._state in (State.DONE, State.ESTOP):
             self._motors.stop()
@@ -228,6 +236,15 @@ class NavigationController:
             log.info("Car delivered. Returning home.")
         self._steer_pid.reset()
         self._transition(State.RETURN)
+
+    def _do_test(self, det: DetectionResult) -> None:
+        """Follow black line until any green shape is detected, then stop."""
+        if det.at_ps1 or det.at_ps2 or det.at_home or det.at_exit:
+            log.info("TEST: green shape detected — stopping")
+            self._motors.stop()
+            self._transition(State.DONE)
+            return
+        self._follow_line(det, config.MOTOR_BASE_SPEED)
 
     def _do_return(self, det: DetectionResult) -> None:
         """Follow line back to HOME."""

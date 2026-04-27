@@ -160,6 +160,7 @@ def _print_ui_banner():
     print("=" * 50)
     print("  1       Pick up Car 1 (PS1) → EXIT → HOME")
     print("  2       Pick up Car 2 (PS2) → EXIT → HOME")
+    print("  t       TEST: follow line until any green shape")
     print("  h       Return robot to HOME")
     print("  r       Reset to IDLE")
     print("  SPACE   Emergency stop")
