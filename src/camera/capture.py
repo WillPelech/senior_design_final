@@ -167,14 +167,11 @@ class CameraStream:
     def _capture_loop_usb(self) -> None:
         """Capture loop using a USB webcam via OpenCV."""
         cap = cv2.VideoCapture(config.USB_CAMERA_INDEX)
-        # Use MJPEG — C920 compresses on-chip, dramatically reduces USB bandwidth and latency
-        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAMERA_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_HEIGHT)
         cap.set(cv2.CAP_PROP_FPS, config.CAMERA_FPS)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # always read the latest frame, not a buffered one
-        cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)    # disable autofocus
-        cap.set(cv2.CAP_PROP_FOCUS, 0)         # set focus to infinity
+        cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)   # disable autofocus
+        cap.set(cv2.CAP_PROP_FOCUS, 0)        # set focus to infinity
 
         if not cap.isOpened():
             log.error("USB camera (index %d) failed to open – falling back to stub", config.USB_CAMERA_INDEX)
