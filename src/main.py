@@ -63,7 +63,7 @@ class _MjpegHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
         self.end_headers()
         try:
-            self.connection.settimeout(5)
+            self.connection.settimeout(15)
             while True:
                 with _stream_lock:
                     frame = _stream_frame[0]
