@@ -77,7 +77,7 @@ class _MjpegHandler(BaseHTTPRequestHandler):
                         + data + b"\r\n"
                     )
                     self.wfile.flush()
-                time.sleep(0.05)
+                time.sleep(0.2)
         except (BrokenPipeError, ConnectionResetError, TimeoutError, OSError):
             pass
 
