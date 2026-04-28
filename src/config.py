@@ -74,34 +74,37 @@ BLUE_LINE_MIN_WIDTH_PX = 15
 
 # -----------------------------------------------------------------------------
 # 3. STOPPING MARKER DETECTION
-# (colored electrical tape shapes at each spot, seen by downward camera)
+# All markers are coloured squares. Each spot has a unique colour.
+#   HOME  = green  square
+#   EXIT  = purple square
+#   PS1   = grey   square  (Car 1)
+#   PS2   = red    square  (Car 2)
 # -----------------------------------------------------------------------------
 
 # Minimum contour area to consider a marker valid (filters noise)
-# Shapes are flush with the downward camera so they fill a large portion of frame
-MIN_MARKER_AREA = 8000
+MIN_MARKER_AREA = 3000
 
-# All stopping markers are GREEN shapes (circle, square, hexagon, triangle)
-# Differentiated by shape, not color
-MARKER_HSV_LOW  = [35,  30,  80]
-MARKER_HSV_HIGH = [85,  255, 255]
+# HOME — green square
+HOME_HSV_LOW  = [35,  30,  80]
+HOME_HSV_HIGH = [85, 255, 255]
 
-# Convenience aliases (same range, kept for readability)
-PS1_HSV_LOW   = MARKER_HSV_LOW    # green square
-PS1_HSV_HIGH  = MARKER_HSV_HIGH
-PS2_HSV_LOW   = MARKER_HSV_LOW    # green hexagon
-PS2_HSV_HIGH  = MARKER_HSV_HIGH
-HOME_HSV_LOW  = MARKER_HSV_LOW    # green circle
-HOME_HSV_HIGH = MARKER_HSV_HIGH
-EXIT_HSV_LOW  = MARKER_HSV_LOW    # green triangle
-EXIT_HSV_HIGH = MARKER_HSV_HIGH
+# EXIT — purple square
+EXIT_HSV_LOW  = [125,  50,  50]
+EXIT_HSV_HIGH = [160, 255, 255]
 
-# Square aspect ratio tolerance (width/height must be within this range)
-SQUARE_ASPECT_MIN = 0.6
-SQUARE_ASPECT_MAX = 1.4
+# PS1 (Car 1) — blue square
+PS1_HSV_LOW  = [100,  80,  50]
+PS1_HSV_HIGH = [130, 255, 255]
 
-# Minimum circularity for home circle (0=line, 1=perfect circle)
-CIRCLE_CIRCULARITY_MIN = 0.65
+# PS2 (Car 2) — red square  (red wraps around in HSV → two ranges)
+PS2_HSV_LOW_1  = [0,   80,  60]
+PS2_HSV_HIGH_1 = [10, 255, 255]
+PS2_HSV_LOW_2  = [165,  80,  60]
+PS2_HSV_HIGH_2 = [179, 255, 255]
+
+# Keep MARKER_HSV_LOW/HIGH pointing at green for tune_camera.py compatibility
+MARKER_HSV_LOW  = HOME_HSV_LOW
+MARKER_HSV_HIGH = HOME_HSV_HIGH
 
 
 # -----------------------------------------------------------------------------

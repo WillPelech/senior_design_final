@@ -110,72 +110,58 @@ class ArucoDetector:
         return result
 
     # ------------------------------------------------------------------
-    # Shape detection (forward-facing camera, shapes on walls)
+    # Colour-based detection — each spot is a uniquely coloured square
+    #   HOME  = green   PS1 = grey   PS2 = red   EXIT = purple
     # ------------------------------------------------------------------
 
     def _detect_all_shapes(self, hsv, annotated, result):
-        mask = cv2.inRange(hsv,
-                           np.array(config.MARKER_HSV_LOW),
-                           np.array(config.MARKER_HSV_HIGH))
+        # Green → HOME
+        self._detect_color(hsv, annotated, result, 'home',
+                           config.HOME_HSV_LOW, config.HOME_HSV_HIGH,
+                           (0, 220, 0))
+
+        # Purple → EXIT
+        self._detect_color(hsv, annotated, result, 'exit',
+                           config.EXIT_HSV_LOW, config.EXIT_HSV_HIGH,
+                           (200, 0, 220))
+
+        # Blue → PS1 (Car 1)
+        self._detect_color(hsv, annotated, result, 'ps1',
+                           config.PS1_HSV_LOW, config.PS1_HSV_HIGH,
+                           (255, 140, 0))
+
+        # Red → PS2 (Car 2) — red wraps around HSV, combine two ranges
+        mask_r1 = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW_1), np.array(config.PS2_HSV_HIGH_1))
+        mask_r2 = cv2.inRange(hsv, np.array(config.PS2_HSV_LOW_2), np.array(config.PS2_HSV_HIGH_2))
+        red_mask = cv2.bitwise_or(mask_r1, mask_r2)
+        self._detect_mask(red_mask, annotated, result, 'ps2', (0, 0, 220))
+
+    def _detect_color(self, hsv, annotated, result, name, hsv_low, hsv_high, color):
+        mask = cv2.inRange(hsv, np.array(hsv_low), np.array(hsv_high))
+        self._detect_mask(mask, annotated, result, name, color)
+
+    def _detect_mask(self, mask, annotated, result, name, color):
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        best_cnt  = None
+        best_area = 0
         for cnt in contours:
             area = cv2.contourArea(cnt)
-            if area < config.SHAPE_MIN_AREA:
-                continue
+            if area >= config.SHAPE_MIN_AREA and area > best_area:
+                best_area = area
+                best_cnt  = cnt
 
-            perimeter = cv2.arcLength(cnt, True)
-            if perimeter == 0:
-                continue
+        if best_cnt is None:
+            return
 
-            approx   = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
-            sides    = len(approx)
-            circularity = 4 * np.pi * area / (perimeter ** 2)
+        x, y, w, h = cv2.boundingRect(best_cnt)
+        x_err = (x + w / 2.0) - self._cx
 
-            x, y, w, h = cv2.boundingRect(cnt)
-            cx_shape  = x + w / 2.0
-            x_err     = cx_shape - self._cx
+        setattr(result, f'{name}_found',   True)
+        setattr(result, f'{name}_x_error', x_err)
+        setattr(result, f'{name}_area',    best_area)
 
-            # Circle  — high circularity
-            if circularity >= config.CIRCLE_CIRCULARITY_MIN:
-                if area > result.home_area:
-                    result.home_found   = True
-                    result.home_x_error = x_err
-                    result.home_area    = area
-                (ecx, ecy), r = cv2.minEnclosingCircle(cnt)
-                cv2.circle(annotated, (int(ecx), int(ecy)), int(r), (0, 255, 0), 2)
-                cv2.putText(annotated, f"HOME err={x_err:+.0f}",
-                            (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-
-            # Triangle — 3 sides
-            elif sides == 3:
-                if area > result.exit_area:
-                    result.exit_found   = True
-                    result.exit_x_error = x_err
-                    result.exit_area    = area
-                cv2.drawContours(annotated, [approx], -1, (0, 255, 255), 2)
-                cv2.putText(annotated, f"EXIT err={x_err:+.0f}",
-                            (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-
-            # Square — 4 sides, roughly equal aspect
-            elif sides == 4:
-                aspect = w / h if h > 0 else 0
-                if config.SQUARE_ASPECT_MIN < aspect < config.SQUARE_ASPECT_MAX:
-                    if area > result.ps1_area:
-                        result.ps1_found   = True
-                        result.ps1_x_error = x_err
-                        result.ps1_area    = area
-                    cv2.rectangle(annotated, (x, y), (x + w, y + h), (0, 200, 255), 2)
-                    cv2.putText(annotated, f"PS1 err={x_err:+.0f}",
-                                (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
-
-            # Hexagon — 5-7 sides
-            elif 5 <= sides <= 7:
-                if area > result.ps2_area:
-                    result.ps2_found   = True
-                    result.ps2_x_error = x_err
-                    result.ps2_area    = area
-                cv2.drawContours(annotated, [approx], -1, (255, 100, 0), 2)
-                cv2.putText(annotated, f"PS2 err={x_err:+.0f}",
-                            (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 100, 0), 1)
+        cv2.rectangle(annotated, (x, y), (x + w, y + h), color, 2)
+        cv2.putText(annotated, f"{name.upper()} err={x_err:+.0f} a={best_area:.0f}",
+                    (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)

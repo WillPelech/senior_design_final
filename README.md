@@ -7,45 +7,31 @@ Autonomous robot that retrieves toy cars from parking spots and delivers them to
 ## Track Layout
 
 ```
-  (Green Hexagon)                   (Green Square)
+  (Red Square)                      (Blue Square)
       PS2                               PS1
        │                                 │
-       │ black tape                      │ blue tape
        │                                 │
        └──────────────┬──────────────────┘
-                      │ fork (black + blue junction)
-                      │ black tape
                       │
-  (Green Circle) ─────┴──────────────── (Green Triangle)
-      HOME             black tape            EXIT
+                      │
+  (Green Square) ─────┴──────────────── (Purple Square)
+      HOME                                  EXIT
 ```
 
-### Tape Color Key
+### Stopping Markers (coloured squares on walls, seen by forward-facing camera)
 
-| Tape Color | Purpose |
-|------------|---------|
-| Black | Main aisle — robot follows by default |
-| Blue | Branch to PS1 — also used by Car 1 after pickup to reach EXIT |
+Each target is a **coloured square**. Colour determines the spot.
 
-### Stopping Markers (green electrical tape shapes on floor)
+| Spot | Colour | Mission |
+|------|--------|---------|
+| HOME | Green | Return destination after delivery |
+| EXIT | Purple | Car drop-off point |
+| PS1  | Blue | Parking Spot 1 — Car 1 |
+| PS2  | Red | Parking Spot 2 — Car 2 |
 
-All markers are **green tape**. Shape determines the spot.
+### Navigation
 
-| Spot | Shape | Notes |
-|------|-------|-------|
-| Parking Spot 1 (PS1) | Square (4 sides) | Car 1 stops here |
-| Parking Spot 2 (PS2) | Hexagon (6 sides) | Car 2 stops here |
-| Home | Circle | Mission complete |
-| Exit | Triangle (3 sides) | Car is dropped off here |
-
-### Routing After Pickup
-
-| Mission | Line followed to EXIT |
-|---------|-----------------------|
-| Car 1   | Blue tape |
-| Car 2   | Black tape |
-
-Robot lifts when it sees its target shape, stays lifted until EXIT triangle, then lowers.
+The robot spins in place until it sees the target colour, then drives toward it using PID steering on the x-error (horizontal offset from frame center). It stops when the square fills `SHAPE_CLOSE_AREA` pixels².
 
 ---
 
@@ -121,7 +107,7 @@ Key controls:
 | Component | Details |
 |-----------|---------|
 | Brain | Raspberry Pi 4B |
-| Camera | USB webcam (facing DOWN for line following) |
+| Camera | USB webcam — Logitech C920 (facing FORWARD, detects coloured squares on walls) |
 | Chassis | Adafruit Mini Robot Rover 2WD |
 | Motor Driver | Adafruit Motor HAT (I2C) |
 | Lift Servo | FS90 micro servo — raises platform under car |
