@@ -79,6 +79,7 @@ class NavigationController:
             kp=config.STEER_KP, ki=config.STEER_KI, kd=config.STEER_KD,
             i_max=config.STEER_I_MAX, dt=config.PID_DT, name="Steer"
         )
+        self._shape_lost_frames = 0
         log.info("NavigationController ready – IDLE, awaiting mission")
 
     # ------------------------------------------------------------------
@@ -246,10 +247,17 @@ class NavigationController:
         area  = getattr(det, f'{shape}_area')
 
         if not found:
-            # Spin slowly to search
-            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED,
-                                    -config.MOTOR_SEARCH_SPIN_SPEED)
+            self._shape_lost_frames += 1
+            if self._shape_lost_frames > 6:
+                # Only spin after losing shape for several consecutive frames
+                self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED,
+                                        -config.MOTOR_SEARCH_SPIN_SPEED)
+            else:
+                # Keep driving straight briefly while detection catches up
+                self._motors.forward(config.MOTOR_BASE_SPEED)
             return False
+
+        self._shape_lost_frames = 0
 
         if area >= config.SHAPE_CLOSE_AREA:
             return True
