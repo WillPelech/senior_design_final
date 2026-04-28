@@ -133,19 +133,19 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # -----------------------------------------------------------------------------
 
 # Normal line-following forward speed
-MOTOR_BASE_SPEED = 0.20
+MOTOR_BASE_SPEED = 0.35
 
 # Max speed either motor can reach
-MOTOR_MAX_SPEED = 0.35
+MOTOR_MAX_SPEED = 0.60
 
 # Dead-band: speeds below this are set to 0
 MOTOR_MIN_SPEED = 0.12
 
 # Slow speed used when approaching a stopping marker
-MOTOR_CREEP_SPEED = 0.15
+MOTOR_CREEP_SPEED = 0.20
 
 # Speed used when spinning in place to search for line
-MOTOR_SEARCH_SPIN_SPEED = 0.18
+MOTOR_SEARCH_SPIN_SPEED = 0.25
 
 # Brief settle pause when transitioning states (seconds)
 MOTOR_SETTLE_TIME_S = 0.15
