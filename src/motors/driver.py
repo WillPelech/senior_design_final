@@ -146,8 +146,9 @@ class MotorDriver:
 
         if _HAT_AVAILABLE and self._kit is not None:
             # Motor HAT: M1 = right drive, M2 = left drive
-            self._kit.motor1.throttle = right
-            self._kit.motor2.throttle = left
+            # Negate both: wiring polarity is reversed
+            self._kit.motor1.throttle = -right
+            self._kit.motor2.throttle = -left
         else:
             log.debug("STUB motors | L=%.2f  R=%.2f", left, right)
 
