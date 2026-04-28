@@ -264,8 +264,8 @@ class NavigationController:
 
         # Drive toward shape with steering correction
         correction = self._steer_pid.compute(x_err)
-        left  = self._clamp(config.MOTOR_BASE_SPEED + correction, lo=0.15)
-        right = self._clamp(config.MOTOR_BASE_SPEED - correction, lo=0.15)
+        left  = self._clamp(config.MOTOR_BASE_SPEED + correction, lo=config.MOTOR_MIN_SPEED)
+        right = self._clamp(config.MOTOR_BASE_SPEED - correction, lo=config.MOTOR_MIN_SPEED)
         self._motors.set_motors(left, right)
         return False
 
