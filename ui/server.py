@@ -77,10 +77,23 @@ def _poll_pi_status():
             )
             if result.returncode == 0 and result.stdout.strip():
                 data = json.loads(result.stdout)
+                robot_state = data.get("robot_state", "IDLE")
+                mission     = data.get("mission",     "NONE")
                 with state_lock:
-                    state["robot_state"] = data.get("robot_state", state["robot_state"])
-                    state["mission"]     = data.get("mission",      state["mission"])
+                    state["robot_state"] = robot_state
+                    state["mission"]     = mission
                     state["connected"]   = True
+                    # Auto-update car status from robot state transitions
+                    if mission == "CAR1":
+                        if robot_state in ("NAVIGATE", "AT_SPOT", "DELIVER"):
+                            state["car1_status"] = "being_picked_up"
+                        elif robot_state in ("AT_EXIT", "RETURN", "DONE"):
+                            state["car1_status"] = "parked"
+                    elif mission == "CAR2":
+                        if robot_state in ("NAVIGATE", "AT_SPOT", "DELIVER"):
+                            state["car2_status"] = "being_picked_up"
+                        elif robot_state in ("AT_EXIT", "RETURN", "DONE"):
+                            state["car2_status"] = "parked"
             else:
                 with state_lock:
                     state["connected"] = False
@@ -136,7 +149,7 @@ def _demo_retrieve(car_num: int):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", pi_host=PI_HOST or "")
 
 
 @app.route("/api/status")
@@ -192,6 +205,14 @@ def api_command():
             state["robot_state"] = "ESTOP"
         if not demo:
             _send_robot_command(" ")
+
+    elif cmd == "reset_car1":
+        with state_lock:
+            state["car1_status"] = "waiting"
+
+    elif cmd == "reset_car2":
+        with state_lock:
+            state["car2_status"] = "waiting"
 
     return jsonify({"ok": True})
 

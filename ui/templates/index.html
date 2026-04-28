@@ -275,6 +275,44 @@
     .log-entry .ts { color: var(--red-dim); margin-right: 6px; }
     .log-entry .msg { color: #9ca3af; }
 
+    /* ── Camera feed ── */
+    .cam-section {
+      width: 100%;
+      max-width: 580px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #000;
+      position: relative;
+    }
+
+    .cam-section img {
+      width: 100%;
+      display: block;
+    }
+
+    .cam-label {
+      position: absolute;
+      top: 8px; left: 10px;
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(0,0,0,0.6);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .btn-reset {
+      background: #1a1a2e;
+      color: #6b7280;
+      border: 1px solid #2e2e44;
+      font-size: 0.72rem;
+      padding: 8px 14px;
+    }
+    .btn-reset:hover:not(:disabled) { background: #222236; color: #9ca3af; }
+
     /* ── Footer ── */
     .footer {
       margin-top: 28px;
@@ -310,6 +348,15 @@
     </div>
   </div>
 
+  <!-- Camera Feed -->
+  {% if pi_host %}
+  <div class="cam-section">
+    <div class="cam-label">Live Feed</div>
+    <img src="http://{{ pi_host }}:8080" alt="Robot camera feed"
+         onerror="this.parentElement.style.display='none'">
+  </div>
+  {% endif %}
+
   <!-- Car Cards -->
   <div class="cars">
     <!-- Car 1 -->
@@ -329,6 +376,7 @@
         <button class="btn-retrieve" id="btn-car1-retrieve" onclick="sendCommand('retrieve_car1')" disabled>
           Retrieve Car 1
         </button>
+        <button class="btn-reset" onclick="resetCar(1)">Reset Status</button>
       </div>
     </div>
 
@@ -349,6 +397,7 @@
         <button class="btn-retrieve" id="btn-car2-retrieve" onclick="sendCommand('retrieve_car2')" disabled>
           Retrieve Car 2
         </button>
+        <button class="btn-reset" onclick="resetCar(2)">Reset Status</button>
       </div>
     </div>
   </div>
@@ -394,6 +443,21 @@
       btnRetrieve.disabled = status !== 'parked';
     }
 
+    let _lastState   = null;
+    let _lastMission = null;
+    let _lastConnected = null;
+
+    const STATE_MESSAGES = {
+      NAVIGATE: m => `Robot navigating to ${m === 'CAR1' ? 'PS1' : m === 'CAR2' ? 'PS2' : 'target'}`,
+      AT_SPOT:  m => `Arrived at parking spot — lifting`,
+      DELIVER:  m => `Delivering to EXIT`,
+      AT_EXIT:  m => `Car delivered at EXIT`,
+      RETURN:   m => `Returning to HOME`,
+      DONE:     m => `Mission complete`,
+      ESTOP:    m => `EMERGENCY STOP`,
+      IDLE:     m => `Robot idle — ready`,
+    };
+
     async function pollStatus() {
       try {
         const res  = await fetch('/api/status');
@@ -402,17 +466,33 @@
         const stateEl = document.getElementById('robot-state');
         stateEl.textContent = data.robot_state;
         stateEl.className   = `status-value state-${data.robot_state}`;
-        document.getElementById('mission').textContent = data.mission || '—';
+        document.getElementById('mission').textContent =
+          (data.mission && data.mission !== 'NONE') ? data.mission : '—';
 
         const dot   = document.getElementById('conn-dot');
         const label = document.getElementById('conn-label');
-        if (data.connected === false) {
+        const isConnected = data.connected !== false;
+        if (!isConnected) {
           dot.classList.add('offline');
           label.textContent = 'Offline';
         } else {
           dot.classList.remove('offline');
           label.textContent = 'Connected';
         }
+
+        // Log state transitions automatically
+        if (data.robot_state !== _lastState || data.mission !== _lastMission) {
+          if (_lastState !== null) {
+            const fn = STATE_MESSAGES[data.robot_state];
+            if (fn) addLog(fn(data.mission));
+          }
+          _lastState   = data.robot_state;
+          _lastMission = data.mission;
+        }
+        if (_lastConnected !== null && isConnected !== _lastConnected) {
+          addLog(isConnected ? 'Robot connected' : 'Robot disconnected', !isConnected);
+        }
+        _lastConnected = isConnected;
 
         updateCarUI(1, data.car1_status);
         updateCarUI(2, data.car2_status);
@@ -421,8 +501,16 @@
       }
     }
 
+    const CMD_LABELS = {
+      car1_ready:    'Car 1 dispatched to PS1',
+      car2_ready:    'Car 2 dispatched to PS2',
+      retrieve_car1: 'Retrieving Car 1 from PS1',
+      retrieve_car2: 'Retrieving Car 2 from PS2',
+      estop:         'EMERGENCY STOP sent',
+    };
+
     async function sendCommand(cmd) {
-      addLog(`Sending: ${cmd}`);
+      addLog(CMD_LABELS[cmd] || cmd);
       try {
         const res  = await fetch('/api/command', {
           method: 'POST',
@@ -431,12 +519,18 @@
         const data = await res.json();
         if (data.error) {
           addLog(`Error: ${data.error}`, true);
-        } else {
-          addLog(`Done: ${cmd}`);
         }
       } catch (e) {
         addLog(`Failed: ${e}`, true);
       }
+    }
+
+    async function resetCar(num) {
+      const res = await fetch('/api/command', {
+        method: 'POST',
+        body: JSON.stringify({ command: `reset_car${num}` }),
+      });
+      addLog(`Car ${num} status reset to waiting`);
     }
 
     pollStatus();

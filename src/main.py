@@ -135,17 +135,14 @@ def _overlay_hud(img, state: State, det, tick: int, mission_name: str) -> None:
         return
     cv2.putText(img, f"STATE: {state.name}  MISSION: {mission_name}",
                 (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2, cv2.LINE_AA)
-    cv2.putText(img, f"tick {tick}  line={'YES' if det.line_found else 'NO'}  x={det.line_x_error:+.0f}px",
-                (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (180, 180, 180), 1, cv2.LINE_AA)
-    flags = []
-    if det.fork_detected: flags.append("FORK")
-    if det.at_ps1:        flags.append("PS1")
-    if det.at_ps2:        flags.append("PS2")
-    if det.at_home:       flags.append("HOME")
-    if det.at_exit:       flags.append("EXIT")
-    if flags:
-        cv2.putText(img, " ".join(flags), (10, 75),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
+    shapes = []
+    if det.home_found:  shapes.append(f"HOME a={det.home_area:.0f} e={det.home_x_error:+.0f}")
+    if det.ps1_found:   shapes.append(f"PS1  a={det.ps1_area:.0f} e={det.ps1_x_error:+.0f}")
+    if det.ps2_found:   shapes.append(f"PS2  a={det.ps2_area:.0f} e={det.ps2_x_error:+.0f}")
+    if det.exit_found:  shapes.append(f"EXIT a={det.exit_area:.0f} e={det.exit_x_error:+.0f}")
+    shape_str = "  |  ".join(shapes) if shapes else "searching..."
+    cv2.putText(img, shape_str,
+                (10, 52), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (100, 255, 100), 1, cv2.LINE_AA)
     cv2.putText(img, "1=CAR1  2=CAR2  h=HOME  SPC=STOP  q=QUIT",
                 (10, img.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (150, 150, 150), 1, cv2.LINE_AA)
 
@@ -248,20 +245,27 @@ def run() -> None:
                         json.dump({
                             "robot_state": nav.state.name,
                             "mission":     nav.mission.name,
+                            "home_found":  det.home_found,
+                            "ps1_found":   det.ps1_found,
+                            "ps2_found":   det.ps2_found,
+                            "exit_found":  det.exit_found,
+                            "home_area":   round(det.home_area),
+                            "ps1_area":    round(det.ps1_area),
+                            "ps2_area":    round(det.ps2_area),
+                            "exit_area":   round(det.exit_area),
                         }, _sf)
                 except Exception:
                     pass
 
             # Print state periodically to terminal
             if tick % 30 == 0:
+                shapes = []
+                if det.home_found:  shapes.append(f"HOME(a={det.home_area:.0f} e={det.home_x_error:+.0f})")
+                if det.ps1_found:   shapes.append(f"PS1(a={det.ps1_area:.0f} e={det.ps1_x_error:+.0f})")
+                if det.ps2_found:   shapes.append(f"PS2(a={det.ps2_area:.0f} e={det.ps2_x_error:+.0f})")
+                if det.exit_found:  shapes.append(f"EXIT(a={det.exit_area:.0f} e={det.exit_x_error:+.0f})")
                 print(f"  State: {nav.state.name:<10}  Mission: {nav.mission.name:<5}  "
-                      f"Line: {'YES' if det.line_found else 'NO '}"
-                      f"  x_err: {det.line_x_error:+.0f}px"
-                      f"  {'FORK' if det.fork_detected else ''}"
-                      f"{'PS1' if det.at_ps1 else ''}"
-                      f"{'PS2' if det.at_ps2 else ''}"
-                      f"{'HOME' if det.at_home else ''}"
-                      f"{'EXIT' if det.at_exit else ''}")
+                      f"Shapes: {', '.join(shapes) if shapes else 'none'}")
                 sys.stdout.flush()
 
             # Push frame to MJPEG stream
@@ -274,7 +278,9 @@ def run() -> None:
             if config.DEBUG_SHOW_PREVIEW and _CV2_AVAILABLE:
                 display = det.annotated if det.annotated is not None else frame
                 _overlay_hud(display, nav.state, det, tick, nav.mission.name)
-                cv2.imshow("AI Valet", display)
+                h, w = display.shape[:2]
+                preview = cv2.resize(display, (min(w, 960), min(h, 540)))
+                cv2.imshow("AI Valet", preview)
                 cv2.waitKey(1)
 
             # Mission done
