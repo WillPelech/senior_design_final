@@ -71,9 +71,9 @@ def _poll_pi_status():
     while True:
         try:
             result = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=2", "-o", "BatchMode=yes",
+                ["ssh", "-o", "ConnectTimeout=1", "-o", "BatchMode=yes",
                  f"{PI_USER}@{PI_HOST}", f"cat /tmp/valet_status.json 2>/dev/null"],
-                timeout=4, capture_output=True, text=True,
+                timeout=2, capture_output=True, text=True,
             )
             if result.returncode == 0 and result.stdout.strip():
                 data = json.loads(result.stdout)
