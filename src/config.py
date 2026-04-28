@@ -89,8 +89,8 @@ HOME_HSV_LOW  = [35,  30,  80]
 HOME_HSV_HIGH = [85, 255, 255]
 
 # EXIT — purple square
-EXIT_HSV_LOW  = [125,  50,  50]
-EXIT_HSV_HIGH = [160, 255, 255]
+EXIT_HSV_LOW  = [108,  60,  80]
+EXIT_HSV_HIGH = [130, 255, 255]
 
 # PS1 (Car 1) — blue square
 PS1_HSV_LOW  = [100,  80,  50]
