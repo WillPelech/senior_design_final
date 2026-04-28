@@ -217,9 +217,9 @@ class NavigationController:
         self._transition(State.RETURN)
 
     def _do_test(self, det: DetectionResult) -> None:
-        """Seek HOME circle as a simple test."""
-        if self._seek_shape(det, 'home'):
-            log.info("TEST: reached HOME — stopping")
+        """Seek EXIT (purple square) as a simple test."""
+        if self._seek_shape(det, 'exit'):
+            log.info("TEST: reached EXIT — stopping")
             self._motors.stop()
             self._transition(State.DONE)
 
