@@ -63,19 +63,22 @@ class _MjpegHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
         self.end_headers()
         try:
+            self.connection.settimeout(5)
             while True:
                 with _stream_lock:
                     frame = _stream_frame[0]
                 if frame is not None and _CV2_AVAILABLE:
-                    _, jpg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                    small = cv2.resize(frame, (640, 360))
+                    _, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 50])
                     data = jpg.tobytes()
                     self.wfile.write(
                         b"--frame\r\nContent-Type: image/jpeg\r\n"
                         + f"Content-Length: {len(data)}\r\n\r\n".encode()
                         + data + b"\r\n"
                     )
+                    self.wfile.flush()
                 time.sleep(0.05)
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, TimeoutError, OSError):
             pass
 
 
