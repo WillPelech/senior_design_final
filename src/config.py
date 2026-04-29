@@ -88,9 +88,9 @@ MIN_MARKER_AREA = 3000
 HOME_HSV_LOW  = [35,  30,  80]
 HOME_HSV_HIGH = [85, 255, 255]
 
-# EXIT — purple square  (H=140 S=255 V=153)
-EXIT_HSV_LOW  = [133, 80,  80]
-EXIT_HSV_HIGH = [147, 255, 255]
+# EXIT — purple square  (H=129 S=125 V=152)
+EXIT_HSV_LOW  = [124,  80,  80]
+EXIT_HSV_HIGH = [136, 255, 255]
 
 # PS1 (Car 1) — blue square  (H=100 S=255 V=190)
 PS1_HSV_LOW  = [95,  200,  100]
