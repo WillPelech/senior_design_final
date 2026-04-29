@@ -22,7 +22,7 @@
 STUB_MOTORS = False
 
 # Set False to disable lift servos entirely (line-following only mode)
-LIFT_ENABLED = False
+LIFT_ENABLED = True
 
 
 # -----------------------------------------------------------------------------
@@ -166,13 +166,13 @@ SERVO_HAT_CHANNEL     = 0
 
 SERVO_PWM_FREQ_HZ = 50
 
-# Pulse widths in microseconds
-SERVO_PULSE_DOWN_US = 1000   # Platform lowered (travel position)
-SERVO_PULSE_UP_US   = 1800   # Platform raised  (carrying car)
-SERVO_PULSE_MAX_SAFE_US = 1900
+# Pulse widths in microseconds (continuous rotation servos)
+# These are spin direction pulses — servo runs for SERVO_TRAVEL_TIME_S then stops
+SERVO_PULSE_UP_US   = 1290   # Spin direction that raises the platform
+SERVO_PULSE_DOWN_US = 1750   # Spin direction that lowers the platform
 
-# Time to wait for servo to complete travel (seconds)
-SERVO_TRAVEL_TIME_S = 0.1
+# How long to spin before cutting signal (seconds)
+SERVO_TRAVEL_TIME_S = 0.6
 
 
 # -----------------------------------------------------------------------------

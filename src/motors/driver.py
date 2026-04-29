@@ -35,10 +35,10 @@ except ImportError:
     _HAT_AVAILABLE = False
 
 try:
-    import RPi.GPIO as GPIO
-    _GPIO_AVAILABLE = True
+    import pigpio as _pigpio
+    _PIGPIO_AVAILABLE = True
 except ImportError:
-    _GPIO_AVAILABLE = False
+    _PIGPIO_AVAILABLE = False
 
 
 # ---------------------------------------------------------------------------
@@ -73,8 +73,7 @@ class MotorDriver:
 
     def __init__(self) -> None:
         self._kit = None
-        self._pwm  = None   # lift servo 1 (GPIO 18 / Pin 12)
-        self._pwm2 = None   # lift servo 2 (GPIO 27 / Pin 13)
+        self._pi  = None    # pigpio instance for continuous rotation servos
         self._gripper_closed = False
 
         self._init_motors()
@@ -104,30 +103,25 @@ class MotorDriver:
             log.warning("adafruit_motorkit not installed – motors in STUB mode")
 
     def _init_servo(self) -> None:
-        if config.STUB_MOTORS:
+        if config.STUB_MOTORS or not config.LIFT_ENABLED:
             return
-        if config.SERVO_USE_HAT_CHANNEL:
-            log.info("Servo will use Motor HAT channel %d", config.SERVO_HAT_CHANNEL)
-            return
-
-        if _GPIO_AVAILABLE:
+        if _PIGPIO_AVAILABLE:
             try:
-                GPIO.setmode(GPIO.BCM)
-                # Servo 1 — Pin 12 / GPIO 18
-                GPIO.setup(config.SERVO_GPIO_PIN, GPIO.OUT)
-                self._pwm = GPIO.PWM(config.SERVO_GPIO_PIN, config.SERVO_PWM_FREQ_HZ)
-                self._pwm.start(_us_to_duty(config.SERVO_PULSE_DOWN_US, config.SERVO_PWM_FREQ_HZ))
-                # Servo 2 — Pin 13 / GPIO 27
-                GPIO.setup(config.SERVO_GPIO_PIN_2, GPIO.OUT)
-                self._pwm2 = GPIO.PWM(config.SERVO_GPIO_PIN_2, config.SERVO_PWM_FREQ_HZ)
-                self._pwm2.start(_us_to_duty(config.SERVO_PULSE_DOWN_US, config.SERVO_PWM_FREQ_HZ))
-                log.info("Lift servos started on GPIO %d and %d", config.SERVO_GPIO_PIN, config.SERVO_GPIO_PIN_2)
+                self._pi = _pigpio.pi()
+                if not self._pi.connected:
+                    log.error("pigpio daemon not running – servo in STUB mode")
+                    self._pi = None
+                    return
+                # Start with no signal so servos don't spin on startup
+                self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN,   0)
+                self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN_2, 0)
+                log.info("Lift servos ready on GPIO %d and %d (pigpio)",
+                         config.SERVO_GPIO_PIN, config.SERVO_GPIO_PIN_2)
             except Exception as exc:
-                log.error("Servo GPIO init failed: %s – servo in STUB mode", exc)
-                self._pwm = None
-                self._pwm2 = None
+                log.error("Servo pigpio init failed: %s – servo in STUB mode", exc)
+                self._pi = None
         else:
-            log.warning("RPi.GPIO not available – servo in STUB mode")
+            log.warning("pigpio not available – servo in STUB mode")
 
     # ------------------------------------------------------------------
     # Drive motors
@@ -188,16 +182,16 @@ class MotorDriver:
     # ------------------------------------------------------------------
 
     def lift_up(self) -> None:
-        """Raise the lift platform to carry the car."""
-        self._set_servo_pulse(config.SERVO_PULSE_UP_US)
+        """Raise the lift platform — spin for SERVO_TRAVEL_TIME_S then stop."""
+        self._timed_servo_pulse(config.SERVO_PULSE_UP_US)
         self._gripper_closed = True
-        log.info("Lift UP (%.0fus)", config.SERVO_PULSE_UP_US)
+        log.info("Lift UP done")
 
     def lift_down(self) -> None:
-        """Lower the lift platform to travel/release position."""
-        self._set_servo_pulse(config.SERVO_PULSE_DOWN_US)
+        """Lower the lift platform — spin for SERVO_TRAVEL_TIME_S then stop."""
+        self._timed_servo_pulse(config.SERVO_PULSE_DOWN_US)
         self._gripper_closed = False
-        log.info("Lift DOWN (%.0fus)", config.SERVO_PULSE_DOWN_US)
+        log.info("Lift DOWN done")
 
     # kept for compatibility
     def gripper_open(self) -> None:
@@ -210,16 +204,15 @@ class MotorDriver:
     def gripper_is_closed(self) -> bool:
         return self._gripper_closed
 
-    def _set_servo_pulse(self, pulse_us: float) -> None:
-        """Send pulse to both lift servos in sync."""
-        if config.SERVO_USE_HAT_CHANNEL:
-            self._set_servo_hat(pulse_us)
-        elif self._pwm is not None:
-            duty = _us_to_duty(pulse_us, config.SERVO_PWM_FREQ_HZ)
-            self._pwm.ChangeDutyCycle(duty)
-            if self._pwm2 is not None:
-                self._pwm2.ChangeDutyCycle(duty)
-            log.debug("Lift servos pulse=%.0fus duty=%.2f%%", pulse_us, duty)
+    def _timed_servo_pulse(self, pulse_us: float) -> None:
+        """Spin both servos at pulse_us for SERVO_TRAVEL_TIME_S then cut signal."""
+        if self._pi is not None:
+            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN,   int(pulse_us))
+            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN_2, int(pulse_us))
+            time.sleep(config.SERVO_TRAVEL_TIME_S)
+            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN,   0)
+            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN_2, 0)
+            log.debug("Servo pulse=%.0fus for %.2fs", pulse_us, config.SERVO_TRAVEL_TIME_S)
         else:
             log.debug("STUB servo pulse=%.0fus", pulse_us)
 
@@ -260,13 +253,8 @@ class MotorDriver:
     def cleanup(self) -> None:
         """Release motors and servo. Call on shutdown."""
         self.stop()
-        if self._pwm is not None:
-            self._pwm.stop()
-        if self._pwm2 is not None:
-            self._pwm2.stop()
-        if _GPIO_AVAILABLE:
-            try:
-                GPIO.cleanup()
-            except Exception:
-                pass
+        if self._pi is not None:
+            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN,   0)
+            self._pi.set_servo_pulsewidth(config.SERVO_GPIO_PIN_2, 0)
+            self._pi.stop()
         log.info("MotorDriver cleaned up")

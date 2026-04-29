@@ -194,7 +194,6 @@ class NavigationController:
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
-            time.sleep(config.SERVO_TRAVEL_TIME_S)
             log.info("Car lifted. Seeking EXIT.")
         self._steer_pid.reset()
         self._transition(State.DELIVER)
@@ -212,16 +211,17 @@ class NavigationController:
         if config.LIFT_ENABLED:
             log.info("Lowering car at EXIT...")
             self._motors.lift_down()
-            time.sleep(config.SERVO_TRAVEL_TIME_S)
             log.info("Car delivered. Seeking HOME.")
         self._steer_pid.reset()
         self._transition(State.RETURN)
 
     def _do_test(self, det: DetectionResult) -> None:
-        """Seek EXIT (purple square) as a simple test."""
+        """Seek EXIT (purple square), lift platform, stay lifted."""
         if self._seek_shape(det, 'exit'):
-            log.info("TEST: reached EXIT — stopping")
+            log.info("TEST: reached EXIT — lifting and holding")
             self._motors.stop()
+            if config.LIFT_ENABLED:
+                self._motors.lift_up()
             self._transition(State.DONE)
 
     def _do_return(self, det: DetectionResult) -> None:
