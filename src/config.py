@@ -92,9 +92,9 @@ HOME_HSV_HIGH = [90, 255, 255]
 EXIT_HSV_LOW  = [120,  60,  40]
 EXIT_HSV_HIGH = [145, 255, 255]
 
-# PS1 (Car 1) — dark blue square (H≈105-115, dark so V is low)
-PS1_HSV_LOW  = [100, 80,  30]
-PS1_HSV_HIGH = [120, 255, 190]
+# PS1 (Car 1) — dark navy blue square (H≈115-125, high S, low V)
+PS1_HSV_LOW  = [100, 100, 20]
+PS1_HSV_HIGH = [125, 255, 160]
 
 # PS2 (Car 2) — red square  (H=6 S=207 V=244, wraps around in HSV → two ranges)
 PS2_HSV_LOW_1  = [0,  150,  100]
