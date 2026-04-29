@@ -70,6 +70,7 @@ print()
 try:
     while True:
         cmd = input("> ").strip()
+        print(f"  [got: {repr(cmd)}]")
         if   cmd == 'q':  break
         elif cmd == 'w':  set_left(left_us + 10)
         elif cmd == 's':  set_left(left_us - 10)
