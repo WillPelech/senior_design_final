@@ -127,7 +127,7 @@ PID_DT = 0.033  # ~30 Hz
 
 # Shape seek parameters
 SHAPE_MIN_AREA   = 3000   # minimum px² to consider a detection valid
-SHAPE_CLOSE_AREA = 170000  # px² — stop and act when shape this large in frame
+SHAPE_CLOSE_AREA = 200000  # px² — stop and act when shape this large in frame
 SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to drive straight
 
 
