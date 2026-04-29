@@ -80,8 +80,8 @@ class MotorDriver:
         self._init_servo()
 
         log.info(
-            "MotorDriver ready | HAT=%s | GPIO=%s | servo_pin=%d",
-            _HAT_AVAILABLE, _GPIO_AVAILABLE, config.SERVO_GPIO_PIN,
+            "MotorDriver ready | HAT=%s | pigpio=%s | servo_pin=%d",
+            _HAT_AVAILABLE, _PIGPIO_AVAILABLE, config.SERVO_GPIO_PIN,
         )
 
     # ------------------------------------------------------------------
