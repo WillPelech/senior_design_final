@@ -172,7 +172,7 @@ SERVO_PULSE_UP_US   = 1290   # Spin direction that raises the platform
 SERVO_PULSE_DOWN_US = 1750   # Spin direction that lowers the platform
 
 # How long to spin before cutting signal (seconds)
-SERVO_TRAVEL_TIME_S = 0.6
+SERVO_TRAVEL_TIME_S = 0.5
 
 
 # -----------------------------------------------------------------------------
