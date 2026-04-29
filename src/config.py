@@ -84,9 +84,9 @@ BLUE_LINE_MIN_WIDTH_PX = 15
 # Minimum contour area to consider a marker valid (filters noise)
 MIN_MARKER_AREA = 3000
 
-# HOME — green square
-HOME_HSV_LOW  = [35,  30,  80]
-HOME_HSV_HIGH = [85, 255, 255]
+# HOME — green square  (H=78 S=135 V=185)
+HOME_HSV_LOW  = [60, 100, 100]
+HOME_HSV_HIGH = [90, 255, 255]
 
 # EXIT — purple square  (H=129 S=125 V=152)
 EXIT_HSV_LOW  = [124,  80,  80]
