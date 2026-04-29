@@ -113,11 +113,14 @@ MARKER_HSV_HIGH = HOME_HSV_HIGH
 
 # Shape-seeking steering PID
 # Error unit: pixels of lateral offset from frame center
-STEER_KP = 0.005   # Proportional – increase if slow to center
-STEER_KI = 0.0001  # Integral     – increase if steady-state drift
-STEER_KD = 0.001   # Derivative   – increase if oscillating
+STEER_KP = 0.002   # Proportional – increase if slow to center
+STEER_KI = 0.0     # Integral     – increase if steady-state drift
+STEER_KD = 0.002   # Derivative   – increase if oscillating
 
 STEER_I_MAX = 0.3
+
+# Dead zone: ignore x_error smaller than this (pixels) — drives straight when centered
+STEER_DEAD_ZONE_PX = 25
 
 # PID loop tick rate
 PID_DT = 0.033  # ~30 Hz

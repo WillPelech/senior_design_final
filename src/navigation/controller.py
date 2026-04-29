@@ -262,11 +262,15 @@ class NavigationController:
         if area >= config.SHAPE_CLOSE_AREA:
             return True
 
-        # Drive toward shape with steering correction
-        correction = self._steer_pid.compute(x_err)
-        left  = self._clamp(config.MOTOR_BASE_SPEED + correction, lo=config.MOTOR_MIN_SPEED)
-        right = self._clamp(config.MOTOR_BASE_SPEED - correction, lo=config.MOTOR_MIN_SPEED)
-        self._motors.set_motors(left, right)
+        # Drive toward shape — ignore tiny errors to avoid left-right jitter
+        if abs(x_err) < config.STEER_DEAD_ZONE_PX:
+            self._steer_pid.reset()
+            self._motors.forward(config.MOTOR_BASE_SPEED)
+        else:
+            correction = self._steer_pid.compute(x_err)
+            left  = self._clamp(config.MOTOR_BASE_SPEED + correction, lo=config.MOTOR_MIN_SPEED)
+            right = self._clamp(config.MOTOR_BASE_SPEED - correction, lo=config.MOTOR_MIN_SPEED)
+            self._motors.set_motors(left, right)
         return False
 
     # ------------------------------------------------------------------
