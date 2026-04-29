@@ -12,9 +12,7 @@
 # =============================================================================
 
 import logging
-import math
 import time
-from typing import Tuple
 
 import sys
 import os
@@ -47,14 +45,6 @@ except ImportError:
 def _clamp(value: float, lo: float = -1.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, value))
 
-
-# ---------------------------------------------------------------------------
-# Helper: convert microseconds → duty cycle percentage for RPi.GPIO PWM
-# Formula: duty = (pulse_us / period_us) * 100
-# ---------------------------------------------------------------------------
-def _us_to_duty(pulse_us: float, freq_hz: float) -> float:
-    period_us = 1_000_000.0 / freq_hz
-    return (pulse_us / period_us) * 100.0
 
 
 class MotorDriver:
@@ -215,23 +205,6 @@ class MotorDriver:
             log.debug("Servo pulse=%.0fus for %.2fs", pulse_us, config.SERVO_TRAVEL_TIME_S)
         else:
             log.debug("STUB servo pulse=%.0fus", pulse_us)
-
-    def _set_servo_hat(self, pulse_us: float) -> None:
-        """Drive servo through the Motor HAT servo channel."""
-        if not (_HAT_AVAILABLE and self._kit is not None):
-            log.debug("STUB HAT servo pulse=%.0fus", pulse_us)
-            return
-        # MotorKit servo uses angle 0–180 degrees; convert pulse → angle
-        # Pulse range 1000us=0° to 2000us=180° (adjust for your servo)
-        pulse_min_us = 1000.0
-        pulse_max_us = 2000.0
-        angle = (pulse_us - pulse_min_us) / (pulse_max_us - pulse_min_us) * 180.0
-        angle = max(0.0, min(180.0, angle))
-        try:
-            servo = getattr(self._kit, f"servo{config.SERVO_HAT_CHANNEL}")
-            servo.angle = angle
-        except AttributeError:
-            log.error("Invalid SERVO_HAT_CHANNEL=%d", config.SERVO_HAT_CHANNEL)
 
     # ------------------------------------------------------------------
     # Dead-band

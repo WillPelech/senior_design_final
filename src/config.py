@@ -159,12 +159,8 @@ MOTOR_SETTLE_TIME_S = 0.15
 # -----------------------------------------------------------------------------
 
 # BCM GPIO pins for lift servos (two FS90 servos moving in sync)
-SERVO_GPIO_PIN   = 18   # Pin 12 on Pi header
-SERVO_GPIO_PIN_2 = 27   # Pin 13 on Pi header
-SERVO_USE_HAT_CHANNEL = False
-SERVO_HAT_CHANNEL     = 0
-
-SERVO_PWM_FREQ_HZ = 50
+SERVO_GPIO_PIN   = 12   # BCM GPIO 12 — Physical Pin 32
+SERVO_GPIO_PIN_2 = 13   # BCM GPIO 13 — Physical Pin 33
 
 # Pulse widths in microseconds (continuous rotation servos)
 # These are spin direction pulses — servo runs for SERVO_TRAVEL_TIME_S then stops
