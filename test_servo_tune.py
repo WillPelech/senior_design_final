@@ -21,8 +21,8 @@ Run:
 import time
 import pigpio
 
-SERVO_GPIO_LEFT  = 18   # GPIO 18 / Pin 12
-SERVO_GPIO_RIGHT = 27   # GPIO 27 / Pin 13
+SERVO_GPIO_LEFT  = 12   # BCM GPIO 12 / Physical Pin 32
+SERVO_GPIO_RIGHT = 13   # BCM GPIO 13 / Physical Pin 33
 
 START_US = 700
 MAX_US   = 2500
@@ -70,7 +70,6 @@ print()
 try:
     while True:
         cmd = input("> ").strip()
-        print(f"  [got: {repr(cmd)}]")
         if   cmd == 'q':  break
         elif cmd == 'w':  set_left(left_us + 10)
         elif cmd == 's':  set_left(left_us - 10)
