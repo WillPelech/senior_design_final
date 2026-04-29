@@ -92,14 +92,14 @@ HOME_HSV_HIGH = [90, 255, 255]
 EXIT_HSV_LOW  = [124,  80,  80]
 EXIT_HSV_HIGH = [136, 255, 255]
 
-# PS1 (Car 1) — blue square  (H=100 S=255 V=190)
-PS1_HSV_LOW  = [95,  200,  100]
-PS1_HSV_HIGH = [105, 255, 255]
+# PS1 (Car 1) — blue square  (H=101 S=255 V=182)
+PS1_HSV_LOW  = [96,  200, 100]
+PS1_HSV_HIGH = [108, 255, 255]
 
-# PS2 (Car 2) — red square  (red wraps around in HSV → two ranges)
-PS2_HSV_LOW_1  = [0,   80,  60]
-PS2_HSV_HIGH_1 = [10, 255, 255]
-PS2_HSV_LOW_2  = [165,  80,  60]
+# PS2 (Car 2) — red square  (H=6 S=207 V=244, wraps around in HSV → two ranges)
+PS2_HSV_LOW_1  = [0,  150,  100]
+PS2_HSV_HIGH_1 = [12, 255,  255]
+PS2_HSV_LOW_2  = [168, 150, 100]
 PS2_HSV_HIGH_2 = [179, 255, 255]
 
 # Keep MARKER_HSV_LOW/HIGH pointing at green for tune_camera.py compatibility
