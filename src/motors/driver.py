@@ -173,12 +173,16 @@ class MotorDriver:
 
     def lift_up(self) -> None:
         """Raise the lift platform — spin for SERVO_TRAVEL_TIME_S then stop."""
+        if self._gripper_closed:
+            return
         self._timed_servo_pulse(config.SERVO_PULSE_UP_US)
         self._gripper_closed = True
         log.info("Lift UP done")
 
     def lift_down(self) -> None:
-        """Lower the lift platform — spin for SERVO_TRAVEL_TIME_S then stop."""
+        """Lower the lift platform — only runs if lift is actually raised."""
+        if not self._gripper_closed:
+            return
         self._timed_servo_pulse(config.SERVO_PULSE_DOWN_US)
         self._gripper_closed = False
         log.info("Lift DOWN done")
