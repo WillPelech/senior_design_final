@@ -7,7 +7,7 @@ import board
 kit = MotorKit(i2c=board.I2C())
 
 print("Right motor (M1) forward...")
-kit.motor1.throttle = 0.5
+kit.motor1.throttle = -0.5
 time.sleep(2)
 
 print("Stop...")
@@ -15,7 +15,7 @@ kit.motor1.throttle = 0
 time.sleep(1)
 
 print("Right motor (M1) reverse...")
-kit.motor1.throttle = -0.5
+kit.motor1.throttle = 0.5
 time.sleep(2)
 
 kit.motor1.throttle = 0
