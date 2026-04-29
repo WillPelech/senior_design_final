@@ -148,9 +148,18 @@ class ArucoDetector:
         best_area = 0
         for cnt in contours:
             area = cv2.contourArea(cnt)
-            if area >= config.SHAPE_MIN_AREA and area > best_area:
-                best_area = area
-                best_cnt  = cnt
+            if area < config.SHAPE_MIN_AREA or area <= best_area:
+                continue
+            # Confirm roughly rectangular: filled area vs bounding box area
+            x, y, w, h = cv2.boundingRect(cnt)
+            bbox_area = w * h
+            if bbox_area == 0:
+                continue
+            fill_ratio = area / bbox_area
+            if fill_ratio < 0.45:  # reject blobs that aren't roughly rectangular
+                continue
+            best_area = area
+            best_cnt  = cnt
 
         if best_cnt is None:
             return
