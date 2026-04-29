@@ -181,10 +181,9 @@ class NavigationController:
     # ------------------------------------------------------------------
 
     def _do_navigate(self, det: DetectionResult) -> None:
-        """Seek target parking spot shape."""
-        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
-        if self._seek_shape(det, target):
-            log.info("Arrived at %s", target.upper())
+        """Drive straight to EXIT (purple) to pick up the car."""
+        if self._seek_shape(det, 'exit'):
+            log.info("Arrived at EXIT — picking up car")
             self._motors.stop()
             self._transition(State.AT_SPOT)
 
@@ -203,9 +202,10 @@ class NavigationController:
         self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Seek EXIT shape."""
-        if self._seek_shape(det, 'exit'):
-            log.info("Arrived at EXIT")
+        """Seek parking spot to drop off the car (PS1 for CAR1, PS2 for CAR2)."""
+        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
+        if self._seek_shape(det, target):
+            log.info("Arrived at %s — dropping off car", target.upper())
             self._motors.stop()
             self._transition(State.AT_EXIT)
 
