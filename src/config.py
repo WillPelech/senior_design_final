@@ -88,9 +88,9 @@ MIN_MARKER_AREA = 3000
 HOME_HSV_LOW  = [35,  30,  80]
 HOME_HSV_HIGH = [85, 255, 255]
 
-# EXIT — purple square  (H=117)
-EXIT_HSV_LOW  = [112,  60,  80]
-EXIT_HSV_HIGH = [122, 255, 255]
+# EXIT — purple square  (H=140 S=255 V=153)
+EXIT_HSV_LOW  = [133, 80,  80]
+EXIT_HSV_HIGH = [147, 255, 255]
 
 # PS1 (Car 1) — blue square  (H=100 S=255 V=190)
 PS1_HSV_LOW  = [95,  200,  100]
@@ -133,19 +133,19 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # -----------------------------------------------------------------------------
 
 # Normal line-following forward speed
-MOTOR_BASE_SPEED = 0.22
+MOTOR_BASE_SPEED = 0.30
 
 # Max speed either motor can reach
-MOTOR_MAX_SPEED = 0.40
+MOTOR_MAX_SPEED = 0.50
 
 # Dead-band: speeds below this are set to 0
-MOTOR_MIN_SPEED = 0.12
+MOTOR_MIN_SPEED = 0.18
 
 # Slow speed used when approaching a stopping marker
-MOTOR_CREEP_SPEED = 0.16
+MOTOR_CREEP_SPEED = 0.22
 
 # Speed used when spinning in place to search for line
-MOTOR_SEARCH_SPIN_SPEED = 0.18
+MOTOR_SEARCH_SPIN_SPEED = 0.22
 
 # Brief settle pause when transitioning states (seconds)
 MOTOR_SETTLE_TIME_S = 0.15
