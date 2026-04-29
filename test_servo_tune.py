@@ -9,7 +9,7 @@ Controls (type command then press Enter):
   t       Test cycle: both DOWN → UP → DOWN
   q       Quit and print final config values
 
-Both servos start at lowest position (700 us).
+Both servos start at DOWN position (1000 us).
 Position is autosaved on every move.
 
 Run:
@@ -24,7 +24,7 @@ import pigpio
 SERVO_GPIO_LEFT  = 12   # BCM GPIO 12 / Physical Pin 32
 SERVO_GPIO_RIGHT = 13   # BCM GPIO 13 / Physical Pin 33
 
-START_US = 700
+START_US = 1000  # known good DOWN position from prior testing
 MAX_US   = 2500
 MIN_US   = 500
 
@@ -62,7 +62,7 @@ def release():
 
 print(__doc__)
 print("─" * 42)
-print("Starting at lowest position (700 us)...")
+print("Starting at DOWN position (1000 us)...")
 set_left(START_US)
 set_right(START_US)
 print()
