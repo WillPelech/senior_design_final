@@ -88,12 +88,12 @@ MIN_MARKER_AREA = 3000
 HOME_HSV_LOW  = [60, 100, 100]
 HOME_HSV_HIGH = [90, 255, 255]
 
-# EXIT — purple square  (H=129 S=125 V=152)
-EXIT_HSV_LOW  = [124,  80,  80]
-EXIT_HSV_HIGH = [136, 255, 255]
+# EXIT — purple square  (H=129 S=125 V=152, can be dark so V min lowered)
+EXIT_HSV_LOW  = [120,  60,  40]
+EXIT_HSV_HIGH = [145, 255, 255]
 
-# PS1 (Car 1) — blue square  (H=101 S=255 V=182)
-PS1_HSV_LOW  = [96,  200, 100]
+# PS1 (Car 1) — blue square  (H=101 S=255 V=182, high S to avoid teal surface)
+PS1_HSV_LOW  = [96,  220, 120]
 PS1_HSV_HIGH = [108, 255, 255]
 
 # PS2 (Car 2) — red square  (H=6 S=207 V=244, wraps around in HSV → two ranges)
