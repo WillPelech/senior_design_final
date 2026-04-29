@@ -189,11 +189,15 @@ class NavigationController:
             self._transition(State.AT_SPOT)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift the car then seek EXIT."""
+        """Lift the car then reverse out, then seek EXIT."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
+            log.info("Backing out...")
+            self._motors.backward(config.MOTOR_BASE_SPEED)
+            time.sleep(config.LIFT_BACKUP_TIME_S)
+            self._motors.stop()
             log.info("Car lifted. Seeking EXIT.")
         self._steer_pid.reset()
         self._transition(State.DELIVER)
@@ -216,12 +220,16 @@ class NavigationController:
         self._transition(State.RETURN)
 
     def _do_test(self, det: DetectionResult) -> None:
-        """Seek EXIT (purple square), lift platform, stay lifted."""
+        """Seek EXIT (purple square), lift platform, back out, done."""
         if self._seek_shape(det, 'exit'):
-            log.info("TEST: reached EXIT — lifting and holding")
+            log.info("TEST: reached EXIT — lifting and backing out")
             self._motors.stop()
             if config.LIFT_ENABLED:
                 self._motors.lift_up()
+                log.info("Backing out...")
+                self._motors.backward(config.MOTOR_BASE_SPEED)
+                time.sleep(config.LIFT_BACKUP_TIME_S)
+                self._motors.stop()
             self._transition(State.DONE)
 
     def _do_return(self, det: DetectionResult) -> None:

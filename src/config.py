@@ -164,11 +164,14 @@ SERVO_GPIO_PIN_2 = 13   # BCM GPIO 13 — Physical Pin 33
 
 # Pulse widths in microseconds (continuous rotation servos)
 # These are spin direction pulses — servo runs for SERVO_TRAVEL_TIME_S then stops
-SERVO_PULSE_UP_US   = 1290   # Spin direction that raises the platform
-SERVO_PULSE_DOWN_US = 1750   # Spin direction that lowers the platform
+SERVO_PULSE_UP_US   = 1750   # Spin direction that raises the platform
+SERVO_PULSE_DOWN_US = 1290   # Spin direction that lowers the platform
 
 # How long to spin before cutting signal (seconds)
 SERVO_TRAVEL_TIME_S = 0.5
+
+# How long to reverse straight back after lifting (seconds)
+LIFT_BACKUP_TIME_S = 1.5
 
 
 # -----------------------------------------------------------------------------
