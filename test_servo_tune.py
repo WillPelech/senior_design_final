@@ -62,9 +62,8 @@ def release():
 
 print(__doc__)
 print("─" * 42)
-print("Starting at DOWN position (1000 us)...")
-set_left(START_US)
-set_right(START_US)
+print("Servos untouched — press w/e to start moving.")
+print(f"Position counter starts at {START_US} us.")
 print()
 
 try:
@@ -80,11 +79,11 @@ try:
         elif cmd == 'E':  set_right(right_us + 50)
         elif cmd == 'D':  set_right(right_us - 50)
         elif cmd == 't':
-            print("  Test: both DOWN...")
+            print(f"  Test: DOWN ({START_US} us)...")
             set_left(START_US); set_right(START_US); time.sleep(1.5)
-            print("  Test: both UP...")
+            print(f"  Test: UP ({left_us} us / {right_us} us)...")
             set_left(left_us);  set_right(right_us); time.sleep(1.5)
-            print("  Test: both DOWN...")
+            print(f"  Test: DOWN ({START_US} us)...")
             set_left(START_US); set_right(START_US)
         else:
             print("  w/s=left  e/d=right  W/S/E/D=x5  t=test  q=quit")
