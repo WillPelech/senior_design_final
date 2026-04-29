@@ -36,7 +36,7 @@ MIN_US = 500
 
 up_us   = 1700   # starting guess: spin one direction
 down_us = 1300   # starting guess: spin other direction
-dur_s   = 1.0    # seconds to run before stopping
+dur_s   = 0.3    # seconds to run before stopping
 
 pi = pigpio.pi()
 if not pi.connected:
