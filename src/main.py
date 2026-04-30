@@ -313,5 +313,63 @@ def run() -> None:
         log.info("Shutdown complete. Total ticks: %d", tick)
 
 
+def run_manual() -> None:
+    """Manual drive mode — WASD controls, no autonomy."""
+    print("\n" + "=" * 50)
+    print("  MANUAL MODE")
+    print("=" * 50)
+    print("  w   Forward")
+    print("  s   Backward")
+    print("  a   Turn left")
+    print("  d   Turn right")
+    print("  SPACE  Stop")
+    print("  u   Lift UP")
+    print("  n   Lift DOWN")
+    print("  q   Quit")
+    print("=" * 50 + "\n")
+    sys.stdout.flush()
+
+    motors = MotorDriver()
+    keys   = KeyReader()
+
+    _shutdown_requested = [False]
+    def _signal_handler(sig, _frame):
+        _shutdown_requested[0] = True
+    signal.signal(signal.SIGINT,  _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+
+    try:
+        while not _shutdown_requested[0]:
+            key = keys.read()
+            if key == 'q':
+                break
+            elif key == 'w':
+                motors.forward(config.MOTOR_BASE_SPEED)
+            elif key == 's':
+                motors.backward(config.MOTOR_BASE_SPEED)
+            elif key == 'a':
+                motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+            elif key == 'd':
+                motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+            elif key == ' ':
+                motors.stop()
+            elif key == 'u':
+                motors.lift_up()
+            elif key == 'n':
+                motors.lift_down()
+            time.sleep(0.05)
+    finally:
+        keys.restore()
+        motors.stop()
+        motors.cleanup()
+
+
 if __name__ == "__main__":
-    run()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manual", action="store_true", help="Manual WASD drive mode")
+    args = parser.parse_args()
+    if args.manual:
+        run_manual()
+    else:
+        run()
