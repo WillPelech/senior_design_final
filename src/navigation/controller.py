@@ -188,16 +188,19 @@ class NavigationController:
             self._transition(State.AT_SPOT)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift the car then reverse out, then seek EXIT."""
+        """Lift the car, reverse straight, turn right, then seek parking spot."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
             log.info("Backing out...")
-            self._motors.backward(config.MOTOR_BASE_SPEED)
+            self._motors.backward(config.LIFT_BACKUP_SPEED)
             time.sleep(config.LIFT_BACKUP_TIME_S)
             self._motors.stop()
-            log.info("Car lifted. Seeking EXIT.")
+            log.info("Turning right for L-approach...")
+            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+            time.sleep(config.LIFT_TURN_TIME_S)
+            self._motors.stop()
         self._steer_pid.reset()
         self._transition(State.DELIVER)
 
@@ -227,7 +230,7 @@ class NavigationController:
             if config.LIFT_ENABLED:
                 self._motors.lift_up()
                 log.info("Backing out...")
-                self._motors.backward(config.MOTOR_BASE_SPEED)
+                self._motors.backward(config.LIFT_BACKUP_SPEED)
                 time.sleep(config.LIFT_BACKUP_TIME_S)
                 self._motors.stop()
             self._transition(State.DONE)
