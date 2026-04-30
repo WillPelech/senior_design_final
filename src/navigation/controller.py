@@ -188,18 +188,26 @@ class NavigationController:
             self._transition(State.AT_SPOT)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift the car, reverse straight, turn right, then seek parking spot."""
+        """Lift, reverse, turn right, forward, turn left — clean L-path to parking spot."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
-            log.info("Backing out...")
+            log.info("Backing out straight...")
             self._motors.backward(config.LIFT_BACKUP_SPEED)
             time.sleep(config.LIFT_BACKUP_TIME_S)
             self._motors.stop()
-            log.info("Turning right for L-approach...")
+            log.info("Turning right (parallel to wall)...")
             self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
             time.sleep(config.LIFT_TURN_TIME_S)
+            self._motors.stop()
+            log.info("Driving forward along wall (L leg 1)...")
+            self._motors.forward(config.LIFT_BACKUP_SPEED)
+            time.sleep(config.DELIVER_FORWARD_TIME_S)
+            self._motors.stop()
+            log.info("Turning left to face parking spot (L corner)...")
+            self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+            time.sleep(config.DELIVER_TURN_TIME_S)
             self._motors.stop()
         self._steer_pid.reset()
         self._transition(State.DELIVER)

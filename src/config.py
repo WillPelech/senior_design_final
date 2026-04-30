@@ -174,8 +174,12 @@ SERVO_TRAVEL_TIME_S = 0.5
 LIFT_BACKUP_TIME_S = 5.5
 # Speed during backup — slower = smoother and straighter
 LIFT_BACKUP_SPEED  = 0.22
-# How long to turn right after backup before seeking next shape (L-shape)
-LIFT_TURN_TIME_S   = 1.5
+# How long to turn right after backup (aligns robot parallel to wall)
+LIFT_TURN_TIME_S        = 1.5
+# Leg 1 of L: drive straight forward along the wall toward PS1
+DELIVER_FORWARD_TIME_S  = 2.0
+# Corner of L: turn left to face PS1 directly
+DELIVER_TURN_TIME_S     = 1.5
 
 
 # -----------------------------------------------------------------------------
