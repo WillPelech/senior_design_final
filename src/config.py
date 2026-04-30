@@ -171,11 +171,11 @@ SERVO_PULSE_DOWN_US = 1290   # Spin direction that lowers the platform
 SERVO_TRAVEL_TIME_S = 0.5
 
 # How long to reverse straight back after lifting (seconds)
-LIFT_BACKUP_TIME_S = 9.0
+LIFT_BACKUP_TIME_S = 5.5
 # Speed during backup — slower = smoother and straighter
 LIFT_BACKUP_SPEED  = 0.22
 # How long to turn right after backup before seeking next shape (L-shape)
-LIFT_TURN_TIME_S   = 0.6
+LIFT_TURN_TIME_S   = 1.5
 
 
 # -----------------------------------------------------------------------------
