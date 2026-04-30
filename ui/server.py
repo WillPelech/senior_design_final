@@ -51,7 +51,9 @@ def _ssh(command: str) -> bool:
         return False
     try:
         result = subprocess.run(
-            ["ssh", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
+            ["ssh", "-i", os.path.expanduser("~/.ssh/id_rsa_pi"),
+             "-o", "IdentitiesOnly=yes",
+             "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
              f"{PI_USER}@{PI_HOST}", command],
             timeout=5, capture_output=True,
         )
@@ -71,7 +73,9 @@ def _poll_pi_status():
     while True:
         try:
             result = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=1", "-o", "BatchMode=yes",
+                ["ssh", "-i", os.path.expanduser("~/.ssh/id_rsa_pi"),
+                 "-o", "IdentitiesOnly=yes",
+                 "-o", "ConnectTimeout=1", "-o", "BatchMode=yes",
                  f"{PI_USER}@{PI_HOST}", f"cat /tmp/valet_status.json 2>/dev/null"],
                 timeout=2, capture_output=True, text=True,
             )
