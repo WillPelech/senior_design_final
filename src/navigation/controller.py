@@ -222,12 +222,16 @@ class NavigationController:
             self._transition(State.AT_EXIT)
 
     def _do_at_exit(self, det: DetectionResult) -> None:
-        """Lower car then seek HOME."""
+        """Lower car at parking spot, reverse out, then seek HOME."""
         self._motors.stop()
         if config.LIFT_ENABLED:
-            log.info("Lowering car at EXIT...")
+            log.info("Lowering car at parking spot...")
             self._motors.lift_down()
-            log.info("Car delivered. Seeking HOME.")
+        log.info("Backing out from parking spot...")
+        self._motors.backward(config.DROP_OFF_BACKUP_SPEED)
+        time.sleep(config.DROP_OFF_BACKUP_TIME_S)
+        self._motors.stop()
+        log.info("Car clear. Seeking HOME.")
         self._steer_pid.reset()
         self._transition(State.RETURN)
 

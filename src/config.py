@@ -85,8 +85,8 @@ BLUE_LINE_MIN_WIDTH_PX = 15
 MIN_MARKER_AREA = 3000
 
 # HOME — green square  (H=78 S=135 V=185)
-HOME_HSV_LOW  = [60, 100, 100]
-HOME_HSV_HIGH = [90, 255, 255]
+HOME_HSV_LOW  = [50, 35, 60]
+HOME_HSV_HIGH = [95, 180, 220]
 
 # EXIT — purple square  (H=129 S=125 V=152, can be dark so V min lowered)
 EXIT_HSV_LOW  = [120,  60,  40]
@@ -175,9 +175,13 @@ SERVO_PULSE_DOWN_US = 1290   # Spin direction that lowers the platform
 SERVO_TRAVEL_TIME_S = 0.5
 
 # How long to reverse straight back after lifting (seconds)
-LIFT_BACKUP_TIME_S = 3.0
+LIFT_BACKUP_TIME_S = 2.4
 # Speed during backup — slower = smoother and straighter
 LIFT_BACKUP_SPEED  = 0.28
+# How long to reverse after dropping the car at PS1/PS2
+DROP_OFF_BACKUP_TIME_S = 1.0
+# Speed while backing away from the parked car
+DROP_OFF_BACKUP_SPEED  = 0.25
 # How long to turn right after backup (aligns robot parallel to wall)
 LIFT_TURN_TIME_S        = 0.75
 # Leg 1 of L: drive straight forward along the wall toward PS1
