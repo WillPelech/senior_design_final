@@ -213,9 +213,9 @@ class NavigationController:
         self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Seek parking spot to drop off the car (PS1 for CAR1, PS2 for CAR2)."""
+        """Seek parking spot at carry speed (1.25x base) to drop off the car."""
         target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
-        if self._seek_shape(det, target):
+        if self._seek_shape(det, target, speed=config.MOTOR_CARRY_SPEED):
             log.info("Arrived at %s — dropping off car", target.upper())
             self._motors.stop()
             self._transition(State.AT_EXIT)
@@ -255,12 +255,15 @@ class NavigationController:
     # Shape seeking (replaces line following)
     # ------------------------------------------------------------------
 
-    def _seek_shape(self, det: DetectionResult, shape: str) -> bool:
+    def _seek_shape(self, det: DetectionResult, shape: str,
+                    speed: float = None) -> bool:
         """
         Spin to search for shape, drive toward it when found.
         Returns True when close enough (area >= SHAPE_CLOSE_AREA).
         shape: 'home' | 'ps1' | 'ps2' | 'exit'
+        speed: override base speed (defaults to MOTOR_BASE_SPEED)
         """
+        spd   = speed if speed is not None else config.MOTOR_BASE_SPEED
         found = getattr(det, f'{shape}_found')
         x_err = getattr(det, f'{shape}_x_error')
         area  = getattr(det, f'{shape}_area')
@@ -268,12 +271,10 @@ class NavigationController:
         if not found:
             self._shape_lost_frames += 1
             if self._shape_lost_frames > 6:
-                # Only spin after losing shape for several consecutive frames
                 self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED,
                                         -config.MOTOR_SEARCH_SPIN_SPEED)
             else:
-                # Keep driving straight briefly while detection catches up
-                self._motors.forward(config.MOTOR_BASE_SPEED)
+                self._motors.forward(spd)
             return False
 
         self._shape_lost_frames = 0
@@ -281,14 +282,13 @@ class NavigationController:
         if area >= config.SHAPE_CLOSE_AREA:
             return True
 
-        # Drive toward shape — ignore tiny errors to avoid left-right jitter
         if abs(x_err) < config.STEER_DEAD_ZONE_PX:
             self._steer_pid.reset()
-            self._motors.forward(config.MOTOR_BASE_SPEED)
+            self._motors.forward(spd)
         else:
             correction = self._steer_pid.compute(x_err)
-            left  = self._clamp(config.MOTOR_BASE_SPEED + correction, lo=config.MOTOR_MIN_SPEED)
-            right = self._clamp(config.MOTOR_BASE_SPEED - correction, lo=config.MOTOR_MIN_SPEED)
+            left  = self._clamp(spd + correction, lo=config.MOTOR_MIN_SPEED)
+            right = self._clamp(spd - correction, lo=config.MOTOR_MIN_SPEED)
             self._motors.set_motors(left, right)
         return False
 

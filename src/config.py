@@ -138,6 +138,9 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # Normal line-following forward speed
 MOTOR_BASE_SPEED = 0.45
 
+# Speed when carrying a car (1.25x base, capped at max)
+MOTOR_CARRY_SPEED = min(MOTOR_BASE_SPEED * 1.25, 0.75)
+
 # Max speed either motor can reach
 MOTOR_MAX_SPEED = 0.60
 
