@@ -127,7 +127,8 @@ PID_DT = 0.033  # ~30 Hz
 
 # Shape seek parameters
 SHAPE_MIN_AREA   = 3000   # minimum px² to consider a detection valid
-SHAPE_CLOSE_AREA = 180000  # px² — stop and act when shape this large in frame
+SHAPE_CLOSE_AREA      = 180000  # px² — stop when approaching EXIT/HOME
+SHAPE_CLOSE_AREA_SPOT = 80000   # px² — stop when approaching parking spot (farther away)
 SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to drive straight
 
 
@@ -174,7 +175,7 @@ SERVO_PULSE_DOWN_US = 1290   # Spin direction that lowers the platform
 SERVO_TRAVEL_TIME_S = 0.5
 
 # How long to reverse straight back after lifting (seconds)
-LIFT_BACKUP_TIME_S = 5.5
+LIFT_BACKUP_TIME_S = 3.0
 # Speed during backup — slower = smoother and straighter
 LIFT_BACKUP_SPEED  = 0.28
 # How long to turn right after backup (aligns robot parallel to wall)

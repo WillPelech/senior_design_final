@@ -215,7 +215,8 @@ class NavigationController:
     def _do_deliver(self, det: DetectionResult) -> None:
         """Seek parking spot at carry speed (1.25x base) to drop off the car."""
         target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
-        if self._seek_shape(det, target, speed=config.MOTOR_CARRY_SPEED):
+        if self._seek_shape(det, target, speed=config.MOTOR_CARRY_SPEED,
+                            close_area=config.SHAPE_CLOSE_AREA_SPOT):
             log.info("Arrived at %s — dropping off car", target.upper())
             self._motors.stop()
             self._transition(State.AT_EXIT)
@@ -256,14 +257,15 @@ class NavigationController:
     # ------------------------------------------------------------------
 
     def _seek_shape(self, det: DetectionResult, shape: str,
-                    speed: float = None) -> bool:
+                    speed: float = None, close_area: int = None) -> bool:
         """
         Spin to search for shape, drive toward it when found.
-        Returns True when close enough (area >= SHAPE_CLOSE_AREA).
-        shape: 'home' | 'ps1' | 'ps2' | 'exit'
+        Returns True when close enough.
         speed: override base speed (defaults to MOTOR_BASE_SPEED)
+        close_area: override stop distance (defaults to SHAPE_CLOSE_AREA)
         """
-        spd   = speed if speed is not None else config.MOTOR_BASE_SPEED
+        spd      = speed      if speed      is not None else config.MOTOR_BASE_SPEED
+        stop_at  = close_area if close_area is not None else config.SHAPE_CLOSE_AREA
         found = getattr(det, f'{shape}_found')
         x_err = getattr(det, f'{shape}_x_error')
         area  = getattr(det, f'{shape}_area')
@@ -279,7 +281,7 @@ class NavigationController:
 
         self._shape_lost_frames = 0
 
-        if area >= config.SHAPE_CLOSE_AREA:
+        if area >= stop_at:
             return True
 
         if abs(x_err) < config.STEER_DEAD_ZONE_PX:
