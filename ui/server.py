@@ -65,7 +65,7 @@ def _ssh(command: str) -> bool:
 
 def _send_robot_command(key: str):
     """Send a keypress to the robot's tmux session via SSH."""
-    _ssh(f"tmux send-keys -t {TMUX_SESSION} '{key}' ''")
+    _ssh(f"tmux send-keys -t {TMUX_SESSION}:0.0 '{key}'")
 
 
 def _poll_pi_status():
