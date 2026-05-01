@@ -136,7 +136,7 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # -----------------------------------------------------------------------------
 
 # Normal line-following forward speed
-MOTOR_BASE_SPEED = 0.50
+MOTOR_BASE_SPEED = 0.45
 
 # Max speed either motor can reach
 MOTOR_MAX_SPEED = 0.60
