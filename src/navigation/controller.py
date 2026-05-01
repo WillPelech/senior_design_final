@@ -34,6 +34,10 @@ class State(Enum):
     IDLE     = auto()
     NAVIGATE = auto()
     AT_SPOT  = auto()
+    L_BACKUP = auto()
+    L_TURN_RIGHT = auto()
+    L_FORWARD = auto()
+    L_TURN_LEFT = auto()
     DELIVER  = auto()
     AT_EXIT  = auto()
     RETURN   = auto()
@@ -148,6 +152,18 @@ class NavigationController:
         elif self._state == State.AT_SPOT:
             self._do_at_spot(det)
 
+        elif self._state == State.L_BACKUP:
+            self._do_l_backup(det)
+
+        elif self._state == State.L_TURN_RIGHT:
+            self._do_l_turn_right(det)
+
+        elif self._state == State.L_FORWARD:
+            self._do_l_forward(det)
+
+        elif self._state == State.L_TURN_LEFT:
+            self._do_l_turn_left(det)
+
         elif self._state == State.DELIVER:
             self._do_deliver(det)
 
@@ -188,29 +204,54 @@ class NavigationController:
             self._transition(State.AT_SPOT)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift, reverse, turn right, forward, turn left — clean L-path to parking spot."""
+        """Lift the car, then start the staged L-path to the parking spot."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
-            log.info("Backing out straight...")
+        self._transition(State.L_BACKUP)
+
+    def _do_l_backup(self, det: DetectionResult) -> None:
+        """Reverse straight out before starting the L approach."""
+        if self._state_elapsed() < config.LIFT_BACKUP_TIME_S:
             self._motors.backward(config.LIFT_BACKUP_SPEED)
-            time.sleep(config.LIFT_BACKUP_TIME_S)
+        else:
             self._motors.stop()
-            log.info("Turning right (parallel to wall)...")
+            self._transition(State.L_TURN_RIGHT)
+
+    def _do_l_turn_right(self, det: DetectionResult) -> None:
+        """Turn right until the target parking marker is visible, then continue the L."""
+        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
+        target_found = getattr(det, f'{target}_found')
+        elapsed = self._state_elapsed()
+
+        if elapsed >= config.LIFT_TURN_TIME_S and target_found:
+            log.info("Saw %s marker after right turn", target.upper())
+            self._motors.stop()
+            self._transition(State.L_FORWARD)
+        elif elapsed >= config.LIFT_TURN_SEARCH_TIMEOUT_S:
+            log.warning("Timed out looking for %s marker during L turn", target.upper())
+            self._motors.stop()
+            self._transition(State.L_FORWARD)
+        else:
             self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
-            time.sleep(config.LIFT_TURN_TIME_S)
-            self._motors.stop()
-            log.info("Driving forward along wall (L leg 1)...")
+
+    def _do_l_forward(self, det: DetectionResult) -> None:
+        """Drive forward along the wall after lining up with the parking marker."""
+        if self._state_elapsed() < config.DELIVER_FORWARD_TIME_S:
             self._motors.forward(config.LIFT_BACKUP_SPEED)
-            time.sleep(config.DELIVER_FORWARD_TIME_S)
+        else:
             self._motors.stop()
-            log.info("Turning left to face parking spot (L corner)...")
+            self._transition(State.L_TURN_LEFT)
+
+    def _do_l_turn_left(self, det: DetectionResult) -> None:
+        """Turn left to face the parking spot, then let shape seeking finish the approach."""
+        if self._state_elapsed() < config.DELIVER_TURN_TIME_S:
             self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
-            time.sleep(config.DELIVER_TURN_TIME_S)
+        else:
             self._motors.stop()
-        self._steer_pid.reset()
-        self._transition(State.DELIVER)
+            self._steer_pid.reset()
+            self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
         """Seek parking spot at carry speed (1.25x base) to drop off the car."""

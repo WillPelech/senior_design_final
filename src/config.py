@@ -184,6 +184,8 @@ DROP_OFF_BACKUP_TIME_S = 3.6
 DROP_OFF_BACKUP_SPEED  = 0.25
 # How long to turn right after backup (aligns robot parallel to wall)
 LIFT_TURN_TIME_S        = 0.75
+# Maximum time to keep turning right while looking for the parking spot marker
+LIFT_TURN_SEARCH_TIMEOUT_S = 3.0
 # Leg 1 of L: drive straight forward along the wall toward PS1
 DELIVER_FORWARD_TIME_S  = 2.0
 # Corner of L: turn left to face PS1 directly
