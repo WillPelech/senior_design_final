@@ -136,13 +136,13 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # -----------------------------------------------------------------------------
 
 # Normal line-following forward speed
-MOTOR_BASE_SPEED = 0.35
+MOTOR_BASE_SPEED = 0.28
 
 # Speed when carrying a car — needs extra power to move with load
-MOTOR_CARRY_SPEED = 0.60
+MOTOR_CARRY_SPEED = 0.45
 
 # Max speed either motor can reach
-MOTOR_MAX_SPEED = 0.65
+MOTOR_MAX_SPEED = 0.55
 
 # Dead-band: speeds below this are set to 0
 MOTOR_MIN_SPEED = 0.18
@@ -176,7 +176,7 @@ SERVO_TRAVEL_TIME_S = 0.5
 # How long to reverse straight back after lifting (seconds)
 LIFT_BACKUP_TIME_S = 5.5
 # Speed during backup — slower = smoother and straighter
-LIFT_BACKUP_SPEED  = 0.40
+LIFT_BACKUP_SPEED  = 0.28
 # How long to turn right after backup (aligns robot parallel to wall)
 LIFT_TURN_TIME_S        = 0.75
 # Leg 1 of L: drive straight forward along the wall toward PS1
