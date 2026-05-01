@@ -113,9 +113,9 @@ MARKER_HSV_HIGH = HOME_HSV_HIGH
 
 # Shape-seeking steering PID
 # Error unit: pixels of lateral offset from frame center
-STEER_KP = 0.002   # Proportional – increase if slow to center
+STEER_KP = 0.0015  # Proportional – increase if slow to center
 STEER_KI = 0.0     # Integral     – increase if steady-state drift
-STEER_KD = 0.002   # Derivative   – increase if oscillating
+STEER_KD = 0.001   # Derivative   – increase if oscillating
 
 STEER_I_MAX = 0.3
 
