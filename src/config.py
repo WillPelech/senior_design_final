@@ -152,7 +152,7 @@ MOTOR_MIN_SPEED = 0.18
 MOTOR_CREEP_SPEED = 0.22
 
 # Speed used when spinning in place to search for line
-MOTOR_SEARCH_SPIN_SPEED = 0.22
+MOTOR_SEARCH_SPIN_SPEED = 0.20
 
 # Brief settle pause when transitioning states (seconds)
 MOTOR_SETTLE_TIME_S = 0.15
