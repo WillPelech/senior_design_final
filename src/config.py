@@ -188,9 +188,9 @@ DROP_OFF_BACKUP_SPEED  = 0.25
 # How long to turn right after backup (aligns robot parallel to wall)
 LIFT_TURN_TIME_S        = 0.75
 # Leg 1 of L: drive forward along the wall
-DELIVER_FORWARD_TIME_S  = 0.9
+DELIVER_FORWARD_TIME_S  = 1.4
 # Corner of L: turn left to face parking spot
-DELIVER_TURN_TIME_S     = 2.4
+DELIVER_TURN_TIME_S     = 1.8
 
 
 # -----------------------------------------------------------------------------
