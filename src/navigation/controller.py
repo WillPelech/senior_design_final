@@ -77,6 +77,7 @@ class NavigationController:
         self._motors = motors
         self._state  = State.IDLE
         self._mission = Mission.NONE
+        self._parking_target = None
         self._state_entry_time = time.monotonic()
         self._tick_count = 0
 
@@ -114,18 +115,21 @@ class NavigationController:
         if key == '1' and self._state == State.IDLE:
             log.info("Mission CAR1 started")
             self._mission = Mission.CAR1
+            self._parking_target = None
 
             self._steer_pid.reset()
             self._transition(State.NAVIGATE)
         elif key == '2' and self._state == State.IDLE:
             log.info("Mission CAR2 started")
             self._mission = Mission.CAR2
+            self._parking_target = None
 
             self._steer_pid.reset()
             self._transition(State.NAVIGATE)
         elif key == 'h':
             log.info("Manual return HOME")
             self._mission = Mission.NONE
+            self._parking_target = None
             self._transition(State.RETURN)
         elif key == ' ':
             log.warning("ESTOP commanded")
@@ -139,6 +143,7 @@ class NavigationController:
             log.info("Resetting to IDLE")
             self._motors.stop()
             self._mission = Mission.NONE
+            self._parking_target = None
             self._transition(State.IDLE)
 
     def tick(self, det: DetectionResult) -> None:
@@ -216,15 +221,17 @@ class NavigationController:
         self._transition(State.L_FIND_TARGET)
 
     def _do_l_find_target(self, det: DetectionResult) -> None:
-        """Turn left first to find the target marker, then commit to the L route."""
-        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
-        target_found = getattr(det, f'{target}_found')
+        """Turn first to find either parking marker, then commit to that route."""
+        target = self._choose_visible_parking_target(det)
 
-        if target_found:
+        if target is not None:
+            self._parking_target = target
             log.info("Located %s marker before L route", target.upper())
             self._motors.stop()
             self._transition(State.L_BACKUP)
         elif self._state_elapsed() >= config.LIFT_FIND_TARGET_TIMEOUT_S:
+            target = self._parking_target or self._default_parking_target()
+            self._parking_target = target
             log.warning("Could not locate %s marker before L route", target.upper())
             self._motors.stop()
             self._transition(State.L_BACKUP)
@@ -266,7 +273,7 @@ class NavigationController:
 
     def _do_deliver(self, det: DetectionResult) -> None:
         """Seek parking spot at carry speed (1.25x base) to drop off the car."""
-        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
+        target = self._parking_target or self._default_parking_target()
         if self._seek_shape(det, target, speed=config.MOTOR_CARRY_SPEED,
                             close_area=config.SHAPE_CLOSE_AREA_SPOT):
             log.info("Arrived at %s — dropping off car", target.upper())
@@ -353,6 +360,19 @@ class NavigationController:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _default_parking_target(self) -> str:
+        return 'ps1' if self._mission == Mission.CAR1 else 'ps2'
+
+    def _choose_visible_parking_target(self, det: DetectionResult):
+        visible = []
+        if det.ps1_found:
+            visible.append(('ps1', det.ps1_area))
+        if det.ps2_found:
+            visible.append(('ps2', det.ps2_area))
+        if not visible:
+            return None
+        return max(visible, key=lambda item: item[1])[0]
 
     def _transition(self, new_state: State) -> None:
         log.info("State: %s → %s", self._state.name, new_state.name)
