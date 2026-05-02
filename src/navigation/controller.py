@@ -39,9 +39,10 @@ class State(Enum):
 
 
 class Mission(Enum):
-    NONE = auto()
-    CAR1 = auto()   # button 1 — delivers to blue (ps1)
-    CAR2 = auto()   # button 2 — delivers to red  (ps2)
+    NONE     = auto()
+    CAR1     = auto()   # button 1 — picks up at exit (purple), delivers to blue (ps1)
+    CAR2     = auto()   # button 2 — picks up at exit (purple), delivers to red  (ps2)
+    RETRIEVE = auto()   # button 3 — picks up at blue (ps1), delivers to exit (purple)
 
 
 class PID:
@@ -111,6 +112,11 @@ class NavigationController:
             self._mission = Mission.CAR2
             self._steer_pid.reset()
             self._transition(State.NAVIGATE)
+        elif key == '3' and self._state == State.IDLE:
+            log.info("Mission RETRIEVE started (blue/PS1 → purple/EXIT → green/HOME)")
+            self._mission = Mission.RETRIEVE
+            self._steer_pid.reset()
+            self._transition(State.NAVIGATE)
         elif key == 'h':
             log.info("Manual return HOME")
             self._mission = Mission.NONE
@@ -166,9 +172,11 @@ class NavigationController:
     # ------------------------------------------------------------------
 
     def _do_navigate(self, det: DetectionResult) -> None:
-        """Seek EXIT (purple) to pick up the car."""
-        if self._seek_shape(det, 'exit'):
-            log.info("Arrived at EXIT — lifting car")
+        """Seek pick-up marker: blue (PS1) for RETRIEVE, purple (EXIT) for CAR1/CAR2."""
+        target = 'ps1' if self._mission == Mission.RETRIEVE else 'exit'
+        label  = 'blue/PS1' if self._mission == Mission.RETRIEVE else 'purple/EXIT'
+        if self._seek_shape(det, target):
+            log.info("Arrived at %s — lifting car", label)
             self._motors.stop()
             self._transition(State.AT_SPOT)
 
@@ -203,10 +211,19 @@ class NavigationController:
         self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Seek the button-assigned parking marker and drop off."""
-        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
-        close_area = config.SHAPE_CLOSE_AREA_PS2 if target == 'ps2' else config.SHAPE_CLOSE_AREA_SPOT
-        speed = config.MOTOR_CARRY_SPEED_PS2 if target == 'ps2' else config.MOTOR_CARRY_SPEED
+        """Seek drop-off marker: purple (EXIT) for RETRIEVE, blue/red for CAR1/CAR2."""
+        if self._mission == Mission.RETRIEVE:
+            target = 'exit'
+            speed  = config.MOTOR_CARRY_SPEED
+            close_area = config.SHAPE_CLOSE_AREA
+        elif self._mission == Mission.CAR2:
+            target = 'ps2'
+            speed  = config.MOTOR_CARRY_SPEED_PS2
+            close_area = config.SHAPE_CLOSE_AREA_PS2
+        else:
+            target = 'ps1'
+            speed  = config.MOTOR_CARRY_SPEED
+            close_area = config.SHAPE_CLOSE_AREA_SPOT
         if self._seek_shape(det, target, speed=speed, close_area=close_area):
             log.info("Arrived at %s — dropping off car", target.upper())
             self._motors.stop()
