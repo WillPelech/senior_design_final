@@ -152,7 +152,7 @@ MOTOR_MIN_SPEED = 0.18
 MOTOR_CREEP_SPEED = 0.22
 
 # Speed used when spinning in place to search for line
-MOTOR_SEARCH_SPIN_SPEED = 0.20
+MOTOR_SEARCH_SPIN_SPEED = 0.22
 
 # Brief settle pause when transitioning states (seconds)
 MOTOR_SETTLE_TIME_S = 0.15
@@ -187,9 +187,9 @@ LIFT_TURN_TIME_S        = 0.75
 # Maximum time to keep turning right while looking for the parking spot marker
 LIFT_TURN_SEARCH_TIMEOUT_S = 3.0
 # Leg 1 of L: drive straight forward along the wall toward PS1
-DELIVER_FORWARD_TIME_S  = 2.0
+DELIVER_FORWARD_TIME_S  = 1.2
 # Corner of L: turn left to face PS1 directly
-DELIVER_TURN_TIME_S     = 1.5
+DELIVER_TURN_TIME_S     = 2.2
 
 
 # -----------------------------------------------------------------------------
