@@ -128,7 +128,7 @@ PID_DT = 0.033  # ~30 Hz
 # Shape seek parameters
 SHAPE_MIN_AREA   = 3000   # minimum px² to consider a detection valid
 SHAPE_CLOSE_AREA      = 180000  # px² — stop when approaching EXIT/HOME
-SHAPE_CLOSE_AREA_SPOT = 80000   # px² — stop when approaching parking spot (farther away)
+SHAPE_CLOSE_AREA_SPOT = 120000  # px² — stop when approaching parking spot
 SHAPE_CLOSE_AREA_PS2  = 55000   # px² — stop closer to red parking spot
 SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to drive straight
 

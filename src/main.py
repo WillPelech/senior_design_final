@@ -69,7 +69,7 @@ class _MjpegHandler(BaseHTTPRequestHandler):
                     frame = _stream_frame[0]
                 if frame is not None and _CV2_AVAILABLE:
                     small = cv2.resize(frame, (640, 360))
-                    _, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 50])
+                    _, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 60])
                     data = jpg.tobytes()
                     self.wfile.write(
                         b"--frame\r\nContent-Type: image/jpeg\r\n"
@@ -77,7 +77,9 @@ class _MjpegHandler(BaseHTTPRequestHandler):
                         + data + b"\r\n"
                     )
                     self.wfile.flush()
-                time.sleep(0.2)
+                    time.sleep(0.05)
+                else:
+                    time.sleep(0.1)
         except (BrokenPipeError, ConnectionResetError, TimeoutError, OSError):
             pass
 
