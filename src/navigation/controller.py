@@ -229,7 +229,7 @@ class NavigationController:
             self._motors.stop()
             self._transition(State.L_BACKUP)
         else:
-            self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
 
     def _do_l_backup(self, det: DetectionResult) -> None:
         """Reverse straight out before starting the L approach."""
@@ -242,7 +242,7 @@ class NavigationController:
     def _do_l_turn_right(self, det: DetectionResult) -> None:
         """Turn right for the L route after the marker has already been located."""
         if self._state_elapsed() < config.LIFT_TURN_TIME_S:
-            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+            self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
         else:
             self._motors.stop()
             self._transition(State.L_FORWARD)
@@ -258,7 +258,7 @@ class NavigationController:
     def _do_l_turn_left(self, det: DetectionResult) -> None:
         """Turn left to face the parking spot, then let shape seeking finish the approach."""
         if self._state_elapsed() < config.DELIVER_TURN_TIME_S:
-            self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
         else:
             self._motors.stop()
             self._steer_pid.reset()
