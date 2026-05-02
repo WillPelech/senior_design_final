@@ -190,7 +190,7 @@ LIFT_TURN_TIME_S        = 0.75
 # Leg 1 of L: drive forward along the wall
 DELIVER_FORWARD_TIME_S  = 1.4
 # Corner of L: turn left to face parking spot
-DELIVER_TURN_TIME_S     = 0.9
+DELIVER_TURN_TIME_S     = 1.1
 
 
 # -----------------------------------------------------------------------------
