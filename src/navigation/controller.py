@@ -34,6 +34,7 @@ class State(Enum):
     IDLE     = auto()
     NAVIGATE = auto()
     AT_SPOT  = auto()
+    L_FIND_TARGET = auto()
     L_BACKUP = auto()
     L_TURN_RIGHT = auto()
     L_FORWARD = auto()
@@ -152,6 +153,9 @@ class NavigationController:
         elif self._state == State.AT_SPOT:
             self._do_at_spot(det)
 
+        elif self._state == State.L_FIND_TARGET:
+            self._do_l_find_target(det)
+
         elif self._state == State.L_BACKUP:
             self._do_l_backup(det)
 
@@ -204,12 +208,28 @@ class NavigationController:
             self._transition(State.AT_SPOT)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift the car, then start the staged L-path to the parking spot."""
+        """Lift the car, then locate the parking marker before the L-path."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
-        self._transition(State.L_BACKUP)
+        self._transition(State.L_FIND_TARGET)
+
+    def _do_l_find_target(self, det: DetectionResult) -> None:
+        """Turn left first to find the target marker, then commit to the L route."""
+        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
+        target_found = getattr(det, f'{target}_found')
+
+        if target_found:
+            log.info("Located %s marker before L route", target.upper())
+            self._motors.stop()
+            self._transition(State.L_BACKUP)
+        elif self._state_elapsed() >= config.LIFT_FIND_TARGET_TIMEOUT_S:
+            log.warning("Could not locate %s marker before L route", target.upper())
+            self._motors.stop()
+            self._transition(State.L_BACKUP)
+        else:
+            self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
 
     def _do_l_backup(self, det: DetectionResult) -> None:
         """Reverse straight out before starting the L approach."""
@@ -220,21 +240,12 @@ class NavigationController:
             self._transition(State.L_TURN_RIGHT)
 
     def _do_l_turn_right(self, det: DetectionResult) -> None:
-        """Turn right until the target parking marker is visible, then continue the L."""
-        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
-        target_found = getattr(det, f'{target}_found')
-        elapsed = self._state_elapsed()
-
-        if elapsed >= config.LIFT_TURN_TIME_S and target_found:
-            log.info("Saw %s marker after right turn", target.upper())
-            self._motors.stop()
-            self._transition(State.L_FORWARD)
-        elif elapsed >= config.LIFT_TURN_SEARCH_TIMEOUT_S:
-            log.warning("Timed out looking for %s marker during L turn", target.upper())
-            self._motors.stop()
-            self._transition(State.L_FORWARD)
-        else:
+        """Turn right for the L route after the marker has already been located."""
+        if self._state_elapsed() < config.LIFT_TURN_TIME_S:
             self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+        else:
+            self._motors.stop()
+            self._transition(State.L_FORWARD)
 
     def _do_l_forward(self, det: DetectionResult) -> None:
         """Drive forward along the wall after lining up with the parking marker."""

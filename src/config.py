@@ -178,6 +178,8 @@ SERVO_TRAVEL_TIME_S = 0.5
 LIFT_BACKUP_TIME_S = 2.4
 # Speed during backup — slower = smoother and straighter
 LIFT_BACKUP_SPEED  = 0.28
+# Maximum time to turn left while first locating the target parking marker
+LIFT_FIND_TARGET_TIMEOUT_S = 2.0
 # How long to reverse after dropping the car at PS1/PS2
 DROP_OFF_BACKUP_TIME_S = 3.6
 # Speed while backing away from the parked car
