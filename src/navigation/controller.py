@@ -280,11 +280,8 @@ class NavigationController:
             self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Seek parking spot; re-evaluate target each tick so we always chase what's visible."""
-        visible = self._choose_visible_parking_target(det)
-        if visible is not None:
-            self._parking_target = visible
-        target = self._parking_target or self._default_parking_target()
+        """Seek the button-assigned parking spot — target locked at this point."""
+        target = self._default_parking_target()
         close_area = config.SHAPE_CLOSE_AREA_PS2 if target == 'ps2' else config.SHAPE_CLOSE_AREA_SPOT
         speed = config.MOTOR_CARRY_SPEED_PS2 if target == 'ps2' else config.MOTOR_CARRY_SPEED
         if self._seek_shape(det, target, speed=speed,
