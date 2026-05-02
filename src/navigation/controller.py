@@ -274,8 +274,9 @@ class NavigationController:
     def _do_deliver(self, det: DetectionResult) -> None:
         """Seek parking spot at carry speed (1.25x base) to drop off the car."""
         target = self._parking_target or self._default_parking_target()
+        close_area = config.SHAPE_CLOSE_AREA_PS2 if target == 'ps2' else config.SHAPE_CLOSE_AREA_SPOT
         if self._seek_shape(det, target, speed=config.MOTOR_CARRY_SPEED,
-                            close_area=config.SHAPE_CLOSE_AREA_SPOT):
+                            close_area=close_area):
             log.info("Arrived at %s — dropping off car", target.upper())
             self._motors.stop()
             self._transition(State.AT_EXIT)
