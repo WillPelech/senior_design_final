@@ -338,25 +338,36 @@ def run_manual() -> None:
     signal.signal(signal.SIGINT,  _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
 
+    last_move = None  # tracks current direction so motors keep running between keypresses
+
+    def _apply(cmd):
+        if cmd == 'w':
+            motors.forward(config.MOTOR_BASE_SPEED)
+        elif cmd == 's':
+            motors.backward(config.MOTOR_BASE_SPEED)
+        elif cmd == 'a':
+            motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+        elif cmd == 'd':
+            motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+
     try:
         while not _shutdown_requested[0]:
             key = keys.read()
             if key == 'q':
                 break
-            elif key == 'w':
-                motors.forward(config.MOTOR_BASE_SPEED)
-            elif key == 's':
-                motors.backward(config.MOTOR_BASE_SPEED)
-            elif key == 'a':
-                motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
-            elif key == 'd':
-                motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+            elif key in ('w', 's', 'a', 'd'):
+                last_move = key
+                _apply(last_move)
             elif key == ' ':
+                last_move = None
                 motors.stop()
             elif key == 'u':
                 motors.lift_up()
             elif key == 'n':
                 motors.lift_down()
+            elif not key and last_move:
+                # no new keypress — keep holding last direction
+                _apply(last_move)
             time.sleep(0.05)
     finally:
         keys.restore()
