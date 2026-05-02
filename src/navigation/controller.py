@@ -255,7 +255,10 @@ class NavigationController:
             self._transition(State.L_FORWARD)
 
     def _do_l_forward(self, det: DetectionResult) -> None:
-        """Drive forward along the wall after lining up with the parking marker."""
+        """Drive forward along the wall, updating parking target if a marker becomes visible."""
+        visible = self._choose_visible_parking_target(det)
+        if visible is not None:
+            self._parking_target = visible
         if self._state_elapsed() < config.DELIVER_FORWARD_TIME_S:
             self._motors.forward(config.LIFT_BACKUP_SPEED)
         else:
@@ -263,7 +266,10 @@ class NavigationController:
             self._transition(State.L_TURN_LEFT)
 
     def _do_l_turn_left(self, det: DetectionResult) -> None:
-        """Turn left to face the parking spot, then let shape seeking finish the approach."""
+        """Turn to face parking spot, keep updating target from camera."""
+        visible = self._choose_visible_parking_target(det)
+        if visible is not None:
+            self._parking_target = visible
         target = self._parking_target or self._default_parking_target()
         turn_time = config.DELIVER_TURN_TIME_PS2_S if target == 'ps2' else config.DELIVER_TURN_TIME_S
         if self._state_elapsed() < turn_time:
@@ -274,7 +280,10 @@ class NavigationController:
             self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Seek parking spot at carry speed (1.25x base) to drop off the car."""
+        """Seek parking spot; re-evaluate target each tick so we always chase what's visible."""
+        visible = self._choose_visible_parking_target(det)
+        if visible is not None:
+            self._parking_target = visible
         target = self._parking_target or self._default_parking_target()
         close_area = config.SHAPE_CLOSE_AREA_PS2 if target == 'ps2' else config.SHAPE_CLOSE_AREA_SPOT
         speed = config.MOTOR_CARRY_SPEED_PS2 if target == 'ps2' else config.MOTOR_CARRY_SPEED
