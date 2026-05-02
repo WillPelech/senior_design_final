@@ -185,7 +185,7 @@ class NavigationController:
         self._motors.stop()
 
         log.info("L-route: turning right...")
-        self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+        self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
         time.sleep(config.LIFT_TURN_TIME_S)
         self._motors.stop()
 
@@ -195,7 +195,7 @@ class NavigationController:
         self._motors.stop()
 
         log.info("L-route: turning left to face parking spot...")
-        self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+        self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
         time.sleep(config.DELIVER_TURN_TIME_S)
         self._motors.stop()
 
