@@ -181,19 +181,28 @@ class NavigationController:
             self._transition(State.AT_SPOT)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift car then run a timed L-route to face the parking spot."""
+        """Lift car then run a timed L-route to face the drop-off marker."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
+
+        # RETRIEVE spins the opposite direction to CAR1/CAR2
+        spin = config.MOTOR_SEARCH_SPIN_SPEED
+        if self._mission == Mission.RETRIEVE:
+            turn1 = (-spin,  spin)   # left wheel backward first
+            turn2 = ( spin, -spin)   # right wheel backward second
+        else:
+            turn1 = ( spin, -spin)   # right wheel backward first
+            turn2 = (-spin,  spin)   # left wheel backward second
 
         log.info("L-route: backing out...")
         self._motors.backward(config.LIFT_BACKUP_SPEED)
         time.sleep(config.LIFT_BACKUP_TIME_S)
         self._motors.stop()
 
-        log.info("L-route: turning right (right wheel backward)...")
-        self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+        log.info("L-route: first turn...")
+        self._motors.set_motors(*turn1)
         time.sleep(config.LIFT_TURN_TIME_S)
         self._motors.stop()
 
@@ -202,8 +211,8 @@ class NavigationController:
         time.sleep(config.DELIVER_FORWARD_TIME_S)
         self._motors.stop()
 
-        log.info("L-route: turning left to face parking spot...")
-        self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+        log.info("L-route: second turn to face drop-off...")
+        self._motors.set_motors(*turn2)
         time.sleep(config.DELIVER_TURN_TIME_S)
         self._motors.stop()
 
