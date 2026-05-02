@@ -139,8 +139,8 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # Normal line-following forward speed
 MOTOR_BASE_SPEED = 0.28
 
-# Speed when carrying a car — needs extra power to move with load
-MOTOR_CARRY_SPEED = 0.45
+# Speed when carrying a car — slower keeps the final parking approach controlled
+MOTOR_CARRY_SPEED = 0.36
 
 # Max speed either motor can reach
 MOTOR_MAX_SPEED = 0.55
@@ -187,9 +187,9 @@ LIFT_TURN_TIME_S        = 0.75
 # Maximum time to keep turning right while looking for the parking spot marker
 LIFT_TURN_SEARCH_TIMEOUT_S = 3.0
 # Leg 1 of L: drive straight forward along the wall toward PS1
-DELIVER_FORWARD_TIME_S  = 1.2
+DELIVER_FORWARD_TIME_S  = 0.9
 # Corner of L: turn left to face PS1 directly
-DELIVER_TURN_TIME_S     = 2.2
+DELIVER_TURN_TIME_S     = 2.8
 
 
 # -----------------------------------------------------------------------------
