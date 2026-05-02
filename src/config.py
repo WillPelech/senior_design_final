@@ -129,7 +129,7 @@ PID_DT = 0.033  # ~30 Hz
 SHAPE_MIN_AREA   = 3000   # minimum px² to consider a detection valid
 SHAPE_CLOSE_AREA      = 180000  # px² — stop when approaching EXIT/HOME
 SHAPE_CLOSE_AREA_SPOT = 80000   # px² — stop when approaching parking spot (farther away)
-SHAPE_CLOSE_AREA_PS2  = 45000   # px² — stop farther from red parking spot
+SHAPE_CLOSE_AREA_PS2  = 30000   # px² — stop farther from red parking spot
 SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to drive straight
 
 
@@ -142,6 +142,8 @@ MOTOR_BASE_SPEED = 0.28
 
 # Speed when carrying a car — slower keeps the final parking approach controlled
 MOTOR_CARRY_SPEED = 0.36
+# Extra slow final approach for the red parking marker
+MOTOR_CARRY_SPEED_PS2 = 0.28
 
 # Max speed either motor can reach
 MOTOR_MAX_SPEED = 0.55
@@ -182,7 +184,7 @@ LIFT_BACKUP_SPEED  = 0.28
 # Maximum time to turn left while first locating the target parking marker
 LIFT_FIND_TARGET_TIMEOUT_S = 2.0
 # How long to reverse after dropping the car at PS1/PS2
-DROP_OFF_BACKUP_TIME_S = 2.4
+DROP_OFF_BACKUP_TIME_S = 1.6
 # Speed while backing away from the parked car
 DROP_OFF_BACKUP_SPEED  = 0.25
 # How long to turn right after backup (aligns robot parallel to wall)
@@ -193,6 +195,8 @@ LIFT_TURN_SEARCH_TIMEOUT_S = 3.0
 DELIVER_FORWARD_TIME_S  = 0.9
 # Corner of L: turn left to face PS1 directly
 DELIVER_TURN_TIME_S     = 2.4
+# Shorter final turn when the chosen parking marker is red
+DELIVER_TURN_TIME_PS2_S = 1.6
 
 
 # -----------------------------------------------------------------------------

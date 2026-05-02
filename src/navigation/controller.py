@@ -264,7 +264,9 @@ class NavigationController:
 
     def _do_l_turn_left(self, det: DetectionResult) -> None:
         """Turn left to face the parking spot, then let shape seeking finish the approach."""
-        if self._state_elapsed() < config.DELIVER_TURN_TIME_S:
+        target = self._parking_target or self._default_parking_target()
+        turn_time = config.DELIVER_TURN_TIME_PS2_S if target == 'ps2' else config.DELIVER_TURN_TIME_S
+        if self._state_elapsed() < turn_time:
             self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
         else:
             self._motors.stop()
@@ -275,7 +277,8 @@ class NavigationController:
         """Seek parking spot at carry speed (1.25x base) to drop off the car."""
         target = self._parking_target or self._default_parking_target()
         close_area = config.SHAPE_CLOSE_AREA_PS2 if target == 'ps2' else config.SHAPE_CLOSE_AREA_SPOT
-        if self._seek_shape(det, target, speed=config.MOTOR_CARRY_SPEED,
+        speed = config.MOTOR_CARRY_SPEED_PS2 if target == 'ps2' else config.MOTOR_CARRY_SPEED
+        if self._seek_shape(det, target, speed=speed,
                             close_area=close_area):
             log.info("Arrived at %s — dropping off car", target.upper())
             self._motors.stop()
