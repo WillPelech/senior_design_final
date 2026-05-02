@@ -244,9 +244,9 @@ class NavigationController:
         self._transition(State.RETURN)
 
     def _do_return(self, det: DetectionResult) -> None:
-        """Seek final home marker: red (PS2) for RETRIEVE, green (HOME) for CAR1/CAR2."""
-        target = 'ps2' if self._mission == Mission.RETRIEVE else 'home'
-        label  = 'red/PS2' if self._mission == Mission.RETRIEVE else 'green/HOME'
+        """Seek final home marker: red (PS2) for CAR1, green (HOME) for CAR2/RETRIEVE."""
+        target = 'ps2' if self._mission == Mission.CAR1 else 'home'
+        label  = 'red/PS2' if self._mission == Mission.CAR1 else 'green/HOME'
         if self._seek_shape(det, target):
             log.info("%s reached. Mission complete.", label)
             self._motors.stop()
