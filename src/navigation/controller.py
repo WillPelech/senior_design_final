@@ -382,6 +382,7 @@ class NavigationController:
         log.info("State: %s → %s", self._state.name, new_state.name)
         self._state = new_state
         self._state_entry_time = time.monotonic()
+        self._shape_lost_frames = 0
 
     def _state_elapsed(self) -> float:
         return time.monotonic() - self._state_entry_time
