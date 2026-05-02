@@ -192,7 +192,7 @@ LIFT_TURN_SEARCH_TIMEOUT_S = 3.0
 # Leg 1 of L: drive straight forward along the wall toward PS1
 DELIVER_FORWARD_TIME_S  = 0.9
 # Corner of L: turn left to face PS1 directly
-DELIVER_TURN_TIME_S     = 2.8
+DELIVER_TURN_TIME_S     = 2.4
 
 
 # -----------------------------------------------------------------------------
