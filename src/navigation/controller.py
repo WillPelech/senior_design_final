@@ -1,19 +1,15 @@
 # =============================================================================
-# navigation/controller.py  –  Line-following state machine
+# navigation/controller.py  –  State machine
 # =============================================================================
 # States:
 #   IDLE       – waiting for mission command (key 1 or 2)
-#   NAVIGATE   – line following toward target spot
-#   AT_SPOT    – stopped at parking spot, lifting car
-#   DELIVER    – line following toward EXIT
-#   AT_EXIT    – stopped at exit, lowering car
-#   RETURN     – line following back to HOME
-#   DONE       – mission complete, motors off
+#   NAVIGATE   – seek EXIT (purple) to pick up car
+#   AT_SPOT    – lift car then run timed L-route to parking spot
+#   DELIVER    – seek parking marker (ps1=blue / ps2=red) and drop off
+#   AT_EXIT    – lower car, reverse out, seek HOME
+#   RETURN     – seek HOME (green)
+#   DONE       – mission complete
 #   ESTOP      – emergency stop
-#
-# Missions:
-#   Mission.CAR1 – pick up from PS1 (blue square), deliver to EXIT
-#   Mission.CAR2 – pick up from PS2 (red square), deliver to EXIT
 # =============================================================================
 
 import logging
@@ -34,23 +30,18 @@ class State(Enum):
     IDLE     = auto()
     NAVIGATE = auto()
     AT_SPOT  = auto()
-    L_FIND_TARGET = auto()
-    L_BACKUP = auto()
-    L_TURN_RIGHT = auto()
-    L_FORWARD = auto()
-    L_TURN_LEFT = auto()
     DELIVER  = auto()
     AT_EXIT  = auto()
     RETURN   = auto()
-    TEST     = auto()   # follow line until any green shape
+    TEST     = auto()
     DONE     = auto()
     ESTOP    = auto()
 
 
 class Mission(Enum):
     NONE = auto()
-    CAR1 = auto()   # pick up from PS1 (blue square)
-    CAR2 = auto()   # pick up from PS2 (red square)
+    CAR1 = auto()   # button 1 — delivers to blue (ps1)
+    CAR2 = auto()   # button 2 — delivers to red  (ps2)
 
 
 class PID:
@@ -77,7 +68,6 @@ class NavigationController:
         self._motors = motors
         self._state  = State.IDLE
         self._mission = Mission.NONE
-        self._parking_target = None
         self._state_entry_time = time.monotonic()
         self._tick_count = 0
 
@@ -95,7 +85,7 @@ class NavigationController:
     def start(self) -> None:
         if config.LIFT_ENABLED:
             self._motors.lift_down()
-        log.info("Robot ready. Press 1 (CAR1), 2 (CAR2), or SPACE to stop.")
+        log.info("Robot ready. Press 1 (CAR1→blue), 2 (CAR2→red), or SPACE to stop.")
 
     def shutdown(self) -> None:
         self._motors.stop()
@@ -111,39 +101,32 @@ class NavigationController:
         return self._mission
 
     def command(self, key: str) -> None:
-        """Handle a key command from the SSH UI."""
         if key == '1' and self._state == State.IDLE:
-            log.info("Mission CAR1 started")
+            log.info("Mission CAR1 started (→ blue/PS1)")
             self._mission = Mission.CAR1
-            self._parking_target = None
-
             self._steer_pid.reset()
             self._transition(State.NAVIGATE)
         elif key == '2' and self._state == State.IDLE:
-            log.info("Mission CAR2 started")
+            log.info("Mission CAR2 started (→ red/PS2)")
             self._mission = Mission.CAR2
-            self._parking_target = None
-
             self._steer_pid.reset()
             self._transition(State.NAVIGATE)
         elif key == 'h':
             log.info("Manual return HOME")
             self._mission = Mission.NONE
-            self._parking_target = None
             self._transition(State.RETURN)
         elif key == ' ':
             log.warning("ESTOP commanded")
             self._motors.brake()
             self._transition(State.ESTOP)
         elif key == 't':
-            log.info("TEST: follow line until any green shape")
+            log.info("TEST mode")
             self._steer_pid.reset()
             self._transition(State.TEST)
         elif key == 'r':
             log.info("Resetting to IDLE")
             self._motors.stop()
             self._mission = Mission.NONE
-            self._parking_target = None
             self._transition(State.IDLE)
 
     def tick(self, det: DetectionResult) -> None:
@@ -151,44 +134,22 @@ class NavigationController:
 
         if self._state == State.IDLE:
             self._motors.stop()
-
         elif self._state == State.NAVIGATE:
             self._do_navigate(det)
-
         elif self._state == State.AT_SPOT:
             self._do_at_spot(det)
-
-        elif self._state == State.L_FIND_TARGET:
-            self._do_l_find_target(det)
-
-        elif self._state == State.L_BACKUP:
-            self._do_l_backup(det)
-
-        elif self._state == State.L_TURN_RIGHT:
-            self._do_l_turn_right(det)
-
-        elif self._state == State.L_FORWARD:
-            self._do_l_forward(det)
-
-        elif self._state == State.L_TURN_LEFT:
-            self._do_l_turn_left(det)
-
         elif self._state == State.DELIVER:
             self._do_deliver(det)
-
         elif self._state == State.AT_EXIT:
             self._do_at_exit(det)
-
         elif self._state == State.RETURN:
             self._do_return(det)
-
         elif self._state == State.TEST:
             self._do_test(det)
-
         elif self._state in (State.DONE, State.ESTOP):
             self._motors.stop()
 
-        # Safety timeout
+        # Safety timeout on long-running navigation states
         if self._state in (State.NAVIGATE, State.DELIVER, State.RETURN):
             if self._state_elapsed() > config.SAFETY_NAV_TIMEOUT_S:
                 log.error("Navigation timeout – ESTOP")
@@ -196,105 +157,66 @@ class NavigationController:
                 self._transition(State.ESTOP)
 
         if config.DEBUG_PRINT_TELEMETRY and self._tick_count % config.DEBUG_TELEMETRY_EVERY_N == 0:
-            log.info("[TELEM] state=%-10s mission=%-5s line=%s x_err=%+.0f fork=%s ps1=%s ps2=%s home=%s exit=%s",
+            log.info("[TELEM] state=%-10s mission=%-5s ps1=%s ps2=%s home=%s exit=%s",
                      self._state.name, self._mission.name,
-                     det.line_found, det.line_x_error,
-                     det.fork_detected, det.at_ps1, det.at_ps2, det.at_home, det.at_exit)
+                     det.ps1_found, det.ps2_found, det.home_found, det.exit_found)
 
     # ------------------------------------------------------------------
     # State handlers
     # ------------------------------------------------------------------
 
     def _do_navigate(self, det: DetectionResult) -> None:
-        """Drive straight to EXIT (purple) to pick up the car."""
+        """Seek EXIT (purple) to pick up the car."""
         if self._seek_shape(det, 'exit'):
-            log.info("Arrived at EXIT — picking up car")
+            log.info("Arrived at EXIT — lifting car")
             self._motors.stop()
             self._transition(State.AT_SPOT)
 
     def _do_at_spot(self, det: DetectionResult) -> None:
-        """Lift the car, then locate the parking marker before the L-path."""
+        """Lift car then run a timed L-route to face the parking spot."""
         self._motors.stop()
         if config.LIFT_ENABLED:
             log.info("Lifting car...")
             self._motors.lift_up()
-        self._transition(State.L_FIND_TARGET)
 
-    def _do_l_find_target(self, det: DetectionResult) -> None:
-        """Turn first to find either parking marker, then commit to that route."""
-        target = self._choose_visible_parking_target(det)
+        log.info("L-route: backing out...")
+        self._motors.backward(config.LIFT_BACKUP_SPEED)
+        time.sleep(config.LIFT_BACKUP_TIME_S)
+        self._motors.stop()
 
-        if target is not None:
-            self._parking_target = target
-            log.info("Located %s marker before L route", target.upper())
-            self._motors.stop()
-            self._transition(State.L_BACKUP)
-        elif self._state_elapsed() >= config.LIFT_FIND_TARGET_TIMEOUT_S:
-            target = self._parking_target or self._default_parking_target()
-            self._parking_target = target
-            log.warning("Could not locate %s marker before L route", target.upper())
-            self._motors.stop()
-            self._transition(State.L_BACKUP)
-        else:
-            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+        log.info("L-route: turning right...")
+        self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+        time.sleep(config.LIFT_TURN_TIME_S)
+        self._motors.stop()
 
-    def _do_l_backup(self, det: DetectionResult) -> None:
-        """Reverse straight out before starting the L approach."""
-        if self._state_elapsed() < config.LIFT_BACKUP_TIME_S:
-            self._motors.backward(config.LIFT_BACKUP_SPEED)
-        else:
-            self._motors.stop()
-            self._transition(State.L_TURN_RIGHT)
+        log.info("L-route: driving forward along wall...")
+        self._motors.forward(config.LIFT_BACKUP_SPEED)
+        time.sleep(config.DELIVER_FORWARD_TIME_S)
+        self._motors.stop()
 
-    def _do_l_turn_right(self, det: DetectionResult) -> None:
-        """Turn right for the L route after the marker has already been located."""
-        if self._state_elapsed() < config.LIFT_TURN_TIME_S:
-            self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
-        else:
-            self._motors.stop()
-            self._transition(State.L_FORWARD)
+        log.info("L-route: turning left to face parking spot...")
+        self._motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+        time.sleep(config.DELIVER_TURN_TIME_S)
+        self._motors.stop()
 
-    def _do_l_forward(self, det: DetectionResult) -> None:
-        """Drive forward along the wall, updating parking target if a marker becomes visible."""
-        visible = self._choose_visible_parking_target(det)
-        if visible is not None:
-            self._parking_target = visible
-        if self._state_elapsed() < config.DELIVER_FORWARD_TIME_S:
-            self._motors.forward(config.LIFT_BACKUP_SPEED)
-        else:
-            self._motors.stop()
-            self._transition(State.L_TURN_LEFT)
-
-    def _do_l_turn_left(self, det: DetectionResult) -> None:
-        """Turn to face parking spot, keep updating target from camera."""
-        visible = self._choose_visible_parking_target(det)
-        if visible is not None:
-            self._parking_target = visible
-        target = self._parking_target or self._default_parking_target()
-        turn_time = config.DELIVER_TURN_TIME_PS2_S if target == 'ps2' else config.DELIVER_TURN_TIME_S
-        if self._state_elapsed() < turn_time:
-            self._motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
-        else:
-            self._motors.stop()
-            self._steer_pid.reset()
-            self._transition(State.DELIVER)
+        self._steer_pid.reset()
+        self._transition(State.DELIVER)
 
     def _do_deliver(self, det: DetectionResult) -> None:
-        """Seek the button-assigned parking spot — target locked at this point."""
-        target = self._default_parking_target()
+        """Seek the button-assigned parking marker and drop off."""
+        target = 'ps1' if self._mission == Mission.CAR1 else 'ps2'
         close_area = config.SHAPE_CLOSE_AREA_PS2 if target == 'ps2' else config.SHAPE_CLOSE_AREA_SPOT
         speed = config.MOTOR_CARRY_SPEED_PS2 if target == 'ps2' else config.MOTOR_CARRY_SPEED
-        if self._seek_shape(det, target, speed=speed,
-                            close_area=close_area):
+        if self._seek_shape(det, target, speed=speed, close_area=close_area):
             log.info("Arrived at %s — dropping off car", target.upper())
             self._motors.stop()
             self._transition(State.AT_EXIT)
 
     def _do_at_exit(self, det: DetectionResult) -> None:
-        """Lower car at parking spot, reverse out, then seek HOME."""
+        """Lower car, reverse out, then seek HOME."""
         self._motors.stop()
         if config.LIFT_ENABLED:
-            log.info("Lowering car at parking spot...")
+            log.info("Lowering car...")
             self._motors.lift_down()
         log.info("Backing out from parking spot...")
         self._motors.backward(config.DROP_OFF_BACKUP_SPEED)
@@ -304,41 +226,38 @@ class NavigationController:
         self._steer_pid.reset()
         self._transition(State.RETURN)
 
-    def _do_test(self, det: DetectionResult) -> None:
-        """Seek EXIT (purple square), lift platform, back out, done."""
-        if self._seek_shape(det, 'exit'):
-            log.info("TEST: reached EXIT — lifting and backing out")
-            self._motors.stop()
-            if config.LIFT_ENABLED:
-                self._motors.lift_up()
-                log.info("Backing out...")
-                self._motors.backward(config.LIFT_BACKUP_SPEED)
-                time.sleep(config.LIFT_BACKUP_TIME_S)
-                self._motors.stop()
-            self._transition(State.DONE)
-
     def _do_return(self, det: DetectionResult) -> None:
-        """Seek HOME shape to complete mission."""
+        """Seek HOME (green) to complete mission."""
         if self._seek_shape(det, 'home'):
             log.info("Home reached. Mission complete.")
             self._motors.stop()
             self._mission = Mission.NONE
             self._transition(State.DONE)
 
+    def _do_test(self, det: DetectionResult) -> None:
+        """Seek EXIT, lift, back out — quick hardware test."""
+        if self._seek_shape(det, 'exit'):
+            log.info("TEST: reached EXIT — lifting and backing out")
+            self._motors.stop()
+            if config.LIFT_ENABLED:
+                self._motors.lift_up()
+                self._motors.backward(config.LIFT_BACKUP_SPEED)
+                time.sleep(config.LIFT_BACKUP_TIME_S)
+                self._motors.stop()
+            self._transition(State.DONE)
+
     # ------------------------------------------------------------------
-    # Shape seeking (replaces line following)
+    # Shape seeking
     # ------------------------------------------------------------------
 
     def _seek_shape(self, det: DetectionResult, shape: str,
                     speed: float = None, close_area: int = None) -> bool:
         """
-        Spin to search for shape, drive toward it when found.
-        Returns True when close enough.
-        speed: override base speed (defaults to MOTOR_BASE_SPEED)
-        close_area: override stop distance (defaults to SHAPE_CLOSE_AREA)
+        PID-steer toward shape. Spin in place when lost.
+        Returns True when area >= close_area (close enough to stop).
         """
-        spd      = speed      if speed      is not None else config.MOTOR_BASE_SPEED
-        stop_at  = close_area if close_area is not None else config.SHAPE_CLOSE_AREA
+        spd     = speed      if speed      is not None else config.MOTOR_BASE_SPEED
+        stop_at = close_area if close_area is not None else config.SHAPE_CLOSE_AREA
         found = getattr(det, f'{shape}_found')
         x_err = getattr(det, f'{shape}_x_error')
         area  = getattr(det, f'{shape}_area')
@@ -370,19 +289,6 @@ class NavigationController:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-
-    def _default_parking_target(self) -> str:
-        return 'ps1' if self._mission == Mission.CAR1 else 'ps2'
-
-    def _choose_visible_parking_target(self, det: DetectionResult):
-        visible = []
-        if det.ps1_found:
-            visible.append(('ps1', det.ps1_area))
-        if det.ps2_found:
-            visible.append(('ps2', det.ps2_area))
-        if not visible:
-            return None
-        return max(visible, key=lambda item: item[1])[0]
 
     def _transition(self, new_state: State) -> None:
         log.info("State: %s → %s", self._state.name, new_state.name)

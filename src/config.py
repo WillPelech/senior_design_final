@@ -140,9 +140,9 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # Normal line-following forward speed
 MOTOR_BASE_SPEED = 0.28
 
-# Speed when carrying a car — slower keeps the final parking approach controlled
+# Speed when carrying a car
 MOTOR_CARRY_SPEED = 0.36
-# Extra slow final approach for the red parking marker
+# Slower final approach for red parking marker
 MOTOR_CARRY_SPEED_PS2 = 0.28
 
 # Max speed either motor can reach
@@ -181,22 +181,16 @@ SERVO_TRAVEL_TIME_S = 0.5
 LIFT_BACKUP_TIME_S = 1.2
 # Speed during backup — slower = smoother and straighter
 LIFT_BACKUP_SPEED  = 0.28
-# Maximum time to turn left while first locating the target parking marker
-LIFT_FIND_TARGET_TIMEOUT_S = 2.0
 # How long to reverse after dropping the car at PS1/PS2
 DROP_OFF_BACKUP_TIME_S = 1.6
 # Speed while backing away from the parked car
 DROP_OFF_BACKUP_SPEED  = 0.25
 # How long to turn right after backup (aligns robot parallel to wall)
 LIFT_TURN_TIME_S        = 0.75
-# Maximum time to keep turning right while looking for the parking spot marker
-LIFT_TURN_SEARCH_TIMEOUT_S = 3.0
-# Leg 1 of L: drive straight forward along the wall toward PS1
+# Leg 1 of L: drive forward along the wall
 DELIVER_FORWARD_TIME_S  = 0.9
-# Corner of L: turn left to face PS1 directly
+# Corner of L: turn left to face parking spot
 DELIVER_TURN_TIME_S     = 2.4
-# Shorter final turn when the chosen parking marker is red
-DELIVER_TURN_TIME_PS2_S = 1.6
 
 
 # -----------------------------------------------------------------------------
