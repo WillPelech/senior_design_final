@@ -138,7 +138,7 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # -----------------------------------------------------------------------------
 
 # Normal line-following forward speed
-MOTOR_BASE_SPEED = 0.28
+MOTOR_BASE_SPEED = 0.35
 
 # Speed when carrying a car
 MOTOR_CARRY_SPEED = 0.50
@@ -180,7 +180,7 @@ SERVO_TRAVEL_TIME_S = 0.5
 # How long to reverse straight back after lifting (seconds)
 LIFT_BACKUP_TIME_S = 2.0
 # Speed during backup — slower = smoother and straighter
-LIFT_BACKUP_SPEED  = 0.28
+LIFT_BACKUP_SPEED  = 0.33
 # How long to reverse after dropping the car at PS1/PS2
 DROP_OFF_BACKUP_TIME_S = 1.6
 # Speed while backing away from the parked car
