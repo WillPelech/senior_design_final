@@ -187,32 +187,38 @@ class NavigationController:
             log.info("Lifting car...")
             self._motors.lift_up()
 
-        # RETRIEVE spins the opposite direction to CAR1/CAR2
-        spin = config.MOTOR_SEARCH_SPIN_SPEED
-        if self._mission == Mission.RETRIEVE:
-            turn1 = (-spin,  spin)   # left wheel backward first
-            turn2 = ( spin, -spin)   # right wheel backward second
-        else:
-            turn1 = ( spin, -spin)   # right wheel backward first
-            turn2 = (-spin,  spin)   # left wheel backward second
-
         log.info("L-route: backing out...")
         self._motors.backward(config.LIFT_BACKUP_SPEED)
         time.sleep(config.LIFT_BACKUP_TIME_S)
         self._motors.stop()
 
-        log.info("L-route: first turn...")
-        self._motors.set_motors(*turn1)
-        time.sleep(config.LIFT_TURN_TIME_S)
-        self._motors.stop()
+        spin = config.MOTOR_SEARCH_SPIN_SPEED
+        if self._mission == Mission.RETRIEVE:
+            log.info("L-route: turning left (left wheel backward)...")
+            self._motors.set_motors(-spin, spin)
+            time.sleep(config.LIFT_TURN_TIME_S)
+            self._motors.stop()
 
-        log.info("L-route: driving forward along wall...")
-        self._motors.forward(config.LIFT_BACKUP_SPEED)
-        time.sleep(config.DELIVER_FORWARD_TIME_S)
-        self._motors.stop()
+            log.info("L-route: driving forward along wall...")
+            self._motors.forward(config.LIFT_BACKUP_SPEED)
+            time.sleep(config.DELIVER_FORWARD_TIME_S)
+            self._motors.stop()
 
-        log.info("L-route: second turn to face drop-off...")
-        self._motors.set_motors(*turn2)
+            log.info("L-route: turning right to face drop-off...")
+            self._motors.set_motors(spin, -spin)
+        else:
+            log.info("L-route: turning right (right wheel backward)...")
+            self._motors.set_motors(spin, -spin)
+            time.sleep(config.LIFT_TURN_TIME_S)
+            self._motors.stop()
+
+            log.info("L-route: driving forward along wall...")
+            self._motors.forward(config.LIFT_BACKUP_SPEED)
+            time.sleep(config.DELIVER_FORWARD_TIME_S)
+            self._motors.stop()
+
+            log.info("L-route: turning left to face parking spot...")
+            self._motors.set_motors(-spin, spin)
         time.sleep(config.DELIVER_TURN_TIME_S)
         self._motors.stop()
 
