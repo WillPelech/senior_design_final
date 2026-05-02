@@ -138,24 +138,24 @@ SHAPE_CENTERED_PX = 80    # x_error below this = shape is centered enough to dri
 # -----------------------------------------------------------------------------
 
 # Normal line-following forward speed
-MOTOR_BASE_SPEED = 0.38
+MOTOR_BASE_SPEED = 0.28
 
 # Speed when carrying a car
-MOTOR_CARRY_SPEED = 0.46
+MOTOR_CARRY_SPEED = 0.50
 # Slower final approach for red parking marker
-MOTOR_CARRY_SPEED_PS2 = 0.36
+MOTOR_CARRY_SPEED_PS2 = 0.40
 
 # Max speed either motor can reach
-MOTOR_MAX_SPEED = 0.65
+MOTOR_MAX_SPEED = 0.55
 
 # Dead-band: speeds below this are set to 0
 MOTOR_MIN_SPEED = 0.18
 
 # Slow speed used when approaching a stopping marker
-MOTOR_CREEP_SPEED = 0.28
+MOTOR_CREEP_SPEED = 0.22
 
 # Speed used when spinning in place to search for line
-MOTOR_SEARCH_SPIN_SPEED = 0.28
+MOTOR_SEARCH_SPIN_SPEED = 0.30
 
 # Brief settle pause when transitioning states (seconds)
 MOTOR_SETTLE_TIME_S = 0.15
