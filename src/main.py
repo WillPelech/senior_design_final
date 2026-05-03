@@ -341,8 +341,8 @@ def run_manual() -> None:
     # the char once, waits ~250-500ms, then repeats at ~30/sec. Stop motors when
     # no movement key has arrived within HOLD_TIMEOUT_S — that bridges the initial
     # repeat delay while still feeling responsive on release.
-    HOLD_TIMEOUT_S = 0.15
-    DRIVE_KEYS = {'w', 's', 'a', 'd'}
+    HOLD_TIMEOUT_S = 0.6
+    TURN_SPEED = config.MOTOR_BASE_SPEED
     last_drive_time = 0.0
     moving = False
 
@@ -360,10 +360,10 @@ def run_manual() -> None:
                 motors.backward(config.MOTOR_BASE_SPEED)
                 last_drive_time = now; moving = True
             elif key == 'a':
-                motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+                motors.set_motors(-TURN_SPEED, TURN_SPEED)
                 last_drive_time = now; moving = True
             elif key == 'd':
-                motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
+                motors.set_motors(TURN_SPEED, -TURN_SPEED)
                 last_drive_time = now; moving = True
             elif key == 'u':
                 motors.lift_up()
