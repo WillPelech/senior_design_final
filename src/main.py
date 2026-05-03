@@ -341,7 +341,7 @@ def run_manual() -> None:
     # the char once, waits ~250-500ms, then repeats at ~30/sec. Stop motors when
     # no movement key has arrived within HOLD_TIMEOUT_S — that bridges the initial
     # repeat delay while still feeling responsive on release.
-    HOLD_TIMEOUT_S = 0.4
+    HOLD_TIMEOUT_S = 0.15
     DRIVE_KEYS = {'w', 's', 'a', 'd'}
     last_drive_time = 0.0
     moving = False
