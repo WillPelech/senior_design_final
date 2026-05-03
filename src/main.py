@@ -314,15 +314,14 @@ def run() -> None:
 
 
 def run_manual() -> None:
-    """Manual drive mode — WASD controls, no autonomy."""
+    """Manual drive mode — hold WASD to drive, release to stop."""
     print("\n" + "=" * 50)
-    print("  MANUAL MODE")
+    print("  MANUAL MODE  (hold key to move, release to stop)")
     print("=" * 50)
     print("  w   Forward")
     print("  s   Backward")
     print("  a   Turn left")
     print("  d   Turn right")
-    print("  SPACE  Stop")
     print("  u   Lift UP")
     print("  n   Lift DOWN")
     print("  q   Quit")
@@ -338,26 +337,44 @@ def run_manual() -> None:
     signal.signal(signal.SIGINT,  _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
 
+    # Terminal key repeat is the only way to detect "still held". The OS sends
+    # the char once, waits ~250-500ms, then repeats at ~30/sec. Stop motors when
+    # no movement key has arrived within HOLD_TIMEOUT_S — that bridges the initial
+    # repeat delay while still feeling responsive on release.
+    HOLD_TIMEOUT_S = 0.4
+    DRIVE_KEYS = {'w', 's', 'a', 'd'}
+    last_drive_time = 0.0
+    moving = False
+
     try:
         while not _shutdown_requested[0]:
             key = keys.read()
+            now = time.monotonic()
+
             if key == 'q':
                 break
             elif key == 'w':
                 motors.forward(config.MOTOR_BASE_SPEED)
+                last_drive_time = now; moving = True
             elif key == 's':
                 motors.backward(config.MOTOR_BASE_SPEED)
+                last_drive_time = now; moving = True
             elif key == 'a':
                 motors.set_motors(-config.MOTOR_SEARCH_SPIN_SPEED, config.MOTOR_SEARCH_SPIN_SPEED)
+                last_drive_time = now; moving = True
             elif key == 'd':
                 motors.set_motors(config.MOTOR_SEARCH_SPIN_SPEED, -config.MOTOR_SEARCH_SPIN_SPEED)
-            elif key == ' ':
-                motors.stop()
+                last_drive_time = now; moving = True
             elif key == 'u':
                 motors.lift_up()
             elif key == 'n':
                 motors.lift_down()
-            time.sleep(0.05)
+
+            if moving and (now - last_drive_time) > HOLD_TIMEOUT_S:
+                motors.stop()
+                moving = False
+
+            time.sleep(0.02)
     finally:
         keys.restore()
         motors.stop()
